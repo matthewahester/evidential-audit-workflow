@@ -1,0 +1,62 @@
+# =============================================================================
+# CITATION.cff
+#
+# Fields prefixed `TODO_` are intentional placeholders to be filled in at
+# preprint posting (manuscript fields), at release tagging (version, date,
+# repository URL, archived-release DOI), and after author profile setup
+# (ORCID). They are not missing values to be inferred; they will be replaced
+# with verified information in the same commit that posts the corresponding
+# external artifact.
+# =============================================================================
+cff-version: 1.2.0
+message: "If you use this pipeline, please cite both the repository and the associated manuscript."
+type: software
+title: "Bias-Robust Bayesian Meta-Analysis Pipeline (RoBMA-PSMA Evidential Audit Workflow)"
+abstract: >-
+  A reproducible R workflow for bias-robust Bayesian reanalysis of
+  meta-analytic datasets using Robust Bayesian Meta-Analysis with
+  Publication-Selection Model Averaging (RoBMA-PSMA). The pipeline takes
+  study-level effect sizes and standard errors as input and returns
+  model-averaged posterior summaries, inclusion Bayes factors for the
+  effect / heterogeneity / bias-adjustment components, diagnostic z-plots,
+  and standardized cross-study visualizations. The repository is released
+  with a worked example reanalyzing 175 outcomes across eight nutrition
+  intervention domains.
+authors:
+  - family-names: Hester
+    given-names: Matt
+    affiliation: "Department of Mathematics and Statistics, University of Arkansas at Little Rock"
+    email: mhester@ualr.edu
+    orcid: "TODO_ORCID"
+repository-code: "TODO_REPOSITORY_URL"
+url: "TODO_REPOSITORY_URL"
+license: MIT
+keywords:
+  - meta-analysis
+  - Bayesian model averaging
+  - RoBMA
+  - publication bias
+  - evidence synthesis
+  - research synthesis methods
+  - reproducible workflow
+  - evidential audit
+version: "TODO_RELEASE_VERSION"
+date-released: "TODO_RELEASE_DATE"
+identifiers:
+  - type: doi
+    value: "TODO_ZENODO_DOI"
+    description: "Archived release DOI (e.g., Zenodo)"
+
+preferred-citation:
+  type: article
+  title: "Widespread Evidential Fragility in Nutrition Intervention Meta-Analyses: A Bias-Robust Bayesian Reanalysis"
+  authors:
+    - family-names: Hester
+      given-names: Matt
+      affiliation: "Department of Mathematics and Statistics, University of Arkansas at Little Rock"
+      email: mhester@ualr.edu
+      orcid: "TODO_ORCID"
+  year: "TODO_PUBLICATION_YEAR"
+  journal: "TODO_JOURNAL"
+  doi: "TODO_MANUSCRIPT_DOI"
+  url: "TODO_MANUSCRIPT_URL"

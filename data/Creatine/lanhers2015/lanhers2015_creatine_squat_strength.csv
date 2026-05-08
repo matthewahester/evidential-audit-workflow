@@ -1,0 +1,12 @@
+﻿Author,,loading_dose,total_dose,duration,training,t0-t1,d,lCI,uCI,se_d,J,g,se_g,notes
+Bemben,Competition,20,390,63,Strength,63,0.858,-0.142,1.859,0.510459184,1,0.858,0.510459184,n not available so smd used
+Izquierdo,Competition,20,100,5,Aerobic,7,0.41,-0.501,1.321,0.464795918,1,0.41,0.464795918,
+Larson-Meyer,Competition,15,350,15,Mixed,60,0.179,-0.972,1.329,0.586989796,1,0.179,0.586989796,
+Law,Recreation,20,100,5,Strength,6,0.083,-0.87,1.036,0.48622449,1,0.083,0.48622449,
+Pearson,Recreation,0,350,70,Strength,-,0.545,-0.455,1.546,0.510459184,1,0.545,0.510459184,
+Stone,Competition,0,700,35,Mixed,35,0.158,-0.725,1.04,0.450255102,1,0.158,0.450255102,
+Vanderberghe,Sedentary,20,430,74,Strength,70,0.711,-0.221,1.643,0.475510204,1,0.711,0.475510204,
+Volek,Recreation,25,560,84,Strength,84,0.262,-0.643,1.167,0.461734694,1,0.262,0.461734694,
+Volek,Recreation,26,275,28,strength,28,0.438,-0.528,1.403,0.492602041,1,0.438,0.492602041,
+Wilder,Competition,20,329,70,Mixed,73,-0.27,-1.227,0.687,0.488265306,1,-0.27,0.488265306,
+Wilder,Competition,0,210,70,Mixed,73,0.352,-0.609,1.313,0.490306122,1,0.352,0.490306122,

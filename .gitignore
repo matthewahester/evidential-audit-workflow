@@ -1,0 +1,98 @@
+# =============================================================================
+# .gitignore for the bias-robust Bayesian meta-analysis pipeline repository
+# =============================================================================
+#
+# Policy:
+#   - Track:    data/ (analysis-ready CSVs + extraction workbooks),
+#               scripts/, documentation/, manuscript/,
+#               per-topic *_robma_summary.csv files,
+#               output/<topic>/plots/*.pdf, and output/overview/*
+#   - Omit:     large fitted RoBMA objects (regenerable), session detritus,
+#               local environment, editor/OS noise.
+#
+# To opt a fitted artifact back into version control (e.g., a single
+# representative fit included with the manuscript), use:
+#     git add -f output/<topic>/<author>/fit_RoBMA_<stem>.rds
+# =============================================================================
+
+
+# ---- R session & history ----------------------------------------------------
+.Rhistory
+.Rapp.history
+.RData
+.Ruserdata
+.Rproj.user/
+*.Rproj
+
+
+# ---- R package build / check artifacts --------------------------------------
+*.Rcheck/
+*.tar.gz
+*-Ex.R
+
+
+# ---- renv: pin the lockfile, ignore the local library -----------------------
+renv/library/
+renv/staging/
+renv/python/
+renv/local/
+renv/cellar/
+# Keep: renv.lock, renv/activate.R, renv/settings.json, .Rprofile
+
+
+# ---- Fitted model objects (regenerable; may be omitted from public repo) ----
+# Excluded by default per README "What is included in the public repository".
+# Force-add a specific file with `git add -f` if you want to ship one.
+output/**/fit_RE_*.rds
+output/**/fit_RoBMA_*.rds
+output/**/zcurve_RE_*.rds
+output/**/zcurve_RoBMA_*.rds
+output/**/**/plots/
+output/**/**/summary/
+# Catch-all guard against future fit types written under output/.
+# Documented summary artifacts are CSV/PDF/PNG/TEX, not RDS, so this is safe.
+output/**/*.rds
+
+
+# ---- Local-only / scratch ---------------------------------------------------
+scratch/
+tmp/
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+Rplots.pdf
+~$*.xlsx
+~$*.xls
+
+# ---- Editor / IDE -----------------------------------------------------------
+.vscode/
+.idea/
+*.code-workspace
+
+
+# ---- OS noise ---------------------------------------------------------------
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+
+# ---- LaTeX build artifacts (manuscript/ keeps .tex and .pdf) ----------------
+manuscript/**/*.aux
+manuscript/**/*.log
+manuscript/**/*.out
+manuscript/**/*.toc
+manuscript/**/*.lof
+manuscript/**/*.lot
+manuscript/**/*.bbl
+manuscript/**/*.blg
+manuscript/**/*.fls
+manuscript/**/*.fdb_latexmk
+manuscript/**/*.synctex.gz
+manuscript/**/*.run.xml
+
+
+# ---- Logs and large diagnostics ---------------------------------------------
+*.log
+batch_status_*.csv

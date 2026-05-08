@@ -1,0 +1,70 @@
+Creative Commons Attribution 4.0 International (CC BY 4.0)
+
+Copyright (c) 2026 Matt Hester
+
+This license applies to the analysis-ready datasets, derived summary tables,
+and figures contained in this repository — specifically, all files under:
+
+    data/**/*.csv
+    data/**/*.xlsx
+    output/**/*.csv
+    output/**/*.pdf
+    output/**/*.png
+    output/**/*.tex
+
+and any equivalent supplementary tables or figures distributed with this
+repository. It does NOT apply to the source code under `scripts/`, which is
+licensed separately under the MIT License (see the `LICENSE` file in the
+repository root).
+
+================================================================================
+SUMMARY OF YOUR RIGHTS UNDER CC BY 4.0
+================================================================================
+
+You are free to:
+
+  - Share — copy and redistribute the material in any medium or format
+  - Adapt — remix, transform, and build upon the material for any purpose,
+    even commercially
+
+Under the following terms:
+
+  - Attribution — You must give appropriate credit, provide a link to the
+    license, and indicate if changes were made. You may do so in any
+    reasonable manner, but not in any way that suggests the licensor
+    endorses you or your use.
+
+  - No additional restrictions — You may not apply legal terms or
+    technological measures that legally restrict others from doing anything
+    the license permits.
+
+The licensor cannot revoke these freedoms as long as you follow the license
+terms.
+
+================================================================================
+SUGGESTED ATTRIBUTION
+================================================================================
+
+When reusing or redistributing material covered by this license, please cite
+this repository and the associated manuscript as described in the `CITATION.cff`
+file at the repository root. A minimal attribution is:
+
+    Hester, M. Bias-Robust Bayesian Meta-Analysis Pipeline (RoBMA-PSMA
+    Evidential Audit Workflow). [repository URL]. Licensed under
+    CC BY 4.0.
+
+================================================================================
+FULL LICENSE TEXT
+================================================================================
+
+The full legal text of the Creative Commons Attribution 4.0 International
+license is available at:
+
+    https://creativecommons.org/licenses/by/4.0/legalcode
+
+A human-readable summary of the license is available at:
+
+    https://creativecommons.org/licenses/by/4.0/
+
+The full legal text governs in the event of any conflict between the summary
+above and the canonical license.

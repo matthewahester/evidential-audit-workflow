@@ -1,0 +1,201 @@
+# ============================================================================
+# Reference between-person SDs for SMD standardization
+# ============================================================================
+#
+# Purpose:
+#   Provides literature-anchored reference SDs for standardizing WMDs into
+#   Hedges' g when the back-calculated SD (derived from reported SE or CI)
+#   falls outside a plausible range. This prevents within-subject or
+#   paired-analysis SEs from masquerading as between-person SDs and
+#   producing implausibly large effect sizes.
+#
+# Decision rule:
+#   Let sd_bc = back-calculated pooled SD from reported SE and (n1, n2).
+#   If sd_plausible_min <= sd_bc <= sd_plausible_max:
+#       use sd_bc (standard Hedges-Olkin approach)
+#   Else:
+#       use sd_reference and flag sd_source = "reference_imputed"
+#
+# Bounds convention:
+#   Plausibility bounds set at roughly [0.5x, 2x] of the reference SD.
+#   This is a pragmatic choice: tight enough to catch the pathological
+#   cases (e.g., Izadi 2018 with implied SBP SD = 0.1 mmHg) but loose
+#   enough to accommodate genuine between-study variation in population
+#   heterogeneity (e.g., lean vs. obese, younger vs. older cohorts).
+#
+# Source anchors:
+#   Primarily NHANES adult data (continuous NHANES, 2007-2018 cycles)
+#   unless otherwise noted. Values reflect between-person SDs in mixed-BMI
+#   adult populations and are deliberately conservative (slightly wide)
+#   to avoid under-standardizing studies drawn from more heterogeneous
+#   samples than NHANES.
+#
+# Units:
+#   Outcome keys are suffixed with units to prevent ambiguity. If a study
+#   reports in different units, convert the WMD before standardizing
+#   (don't convert the reference SD).
+#
+# Last updated: 2026-04-17
+# Maintainer: M. Dodd (nutrition RoBMA project)
+# ============================================================================
+
+# ---------------- Blood pressure ----------------
+
+sbp_mmhg:
+  sd_reference: 14
+  sd_plausible_min: 7
+  sd_plausible_max: 28
+  source: "NHANES adult mixed-BMI; consistent with Framingham, UK Biobank"
+  notes: >
+    Remarkably stable 13-16 mmHg across adult cohorts. Narrows slightly
+    in hypertensive-only samples (selection on BP compresses variance);
+    widens in geriatric cohorts due to increased arterial stiffness.
+
+dbp_mmhg:
+  sd_reference: 9
+  sd_plausible_min: 4.5
+  sd_plausible_max: 18
+  source: "NHANES adult mixed-BMI"
+  notes: >
+    Typical 8-11 mmHg. Less sensitive to age than SBP.
+
+# ---------------- Anthropometrics ----------------
+
+bmi_kgm2:
+  sd_reference: 5
+  sd_plausible_min: 2.5
+  sd_plausible_max: 10
+  source: "NHANES adult"
+  notes: >
+    Population SD ~5-6 in mixed BMI samples. In trials restricted to
+    overweight/obese (BMI 25-40), SD compresses to 3-4; consider the
+    plausible_min boundary carefully for narrow-inclusion trials.
+
+waist_cm:
+  sd_reference: 13
+  sd_plausible_min: 6.5
+  sd_plausible_max: 26
+  source: "NHANES adult"
+  notes: >
+    Similar pattern to BMI: ~13 in general adult, ~10 in obese-only.
+
+weight_kg:
+  sd_reference: 18
+  sd_plausible_min: 9
+  sd_plausible_max: 36
+  source: "NHANES adult"
+  notes: >
+    Wider variance than BMI because it confounds body size and composition.
+
+# ---------------- Lipids ----------------
+
+hdl_mgdl:
+  sd_reference: 15
+  sd_plausible_min: 7.5
+  sd_plausible_max: 30
+  source: "NHANES adult"
+  notes: >
+    Sex differences are large (women ~55 +/- 15, men ~45 +/- 13). For
+    single-sex trials, consider reducing reference to 13.
+
+ldl_mgdl:
+  sd_reference: 35
+  sd_plausible_min: 17.5
+  sd_plausible_max: 70
+  source: "NHANES adult"
+  notes: >
+    Broad distribution in general population. Trials restricted to
+    hyperlipidemic patients (baseline LDL > 130) may have narrower SDs.
+
+tg_mgdl:
+  sd_reference: 80
+  sd_plausible_min: 40
+  sd_plausible_max: 160
+  source: >
+    Derived from ARIC + Framingham Offspring pooled percentiles (males:
+    10th/50th/90th = 65/118/228 mg/dL; females: 62/105/196 mg/dL) assuming
+    lognormal distribution. Combined-sex raw SD under lognormal model
+    ~62 mg/dL; adjusted upward to ~80 for typical RCT samples which over-
+    represent metabolic-syndrome / hyperlipidemic participants relative
+    to the general population.
+  notes: >
+    Use this entry when a meta-analysis pools raw TG (mg/dL) without
+    log-transformation -- the common case in nutrition RCT meta-analyses
+    (e.g., Cai 2012 coffee, most dietary intervention MAs). The raw SD
+    is heavily influenced by high-TG outliers; bounds of [40, 160]
+    accommodate samples from lean/normolipidemic (SD ~50) up through
+    T2DM/metabolic-syndrome cohorts (SD ~130).
+    For mmol/L, divide SD by 88.57 (reference ~0.9 mmol/L, bounds ~0.45-1.8).
+    Prefer tg_log_mgdl if the primary paper log-transformed; use this only
+    for raw-scale analyses.
+
+tg_log_mgdl:
+  sd_reference: 0.5
+  sd_plausible_min: 0.25
+  sd_plausible_max: 1.0
+  source: >
+    ARIC/Framingham derived: log-SD ~0.47-0.49 on natural-log scale across
+    sexes. Rounded to 0.5 for the reference.
+  notes: >
+    Use when the meta-analysis operates on log-transformed TG (the
+    statistically preferred approach, per AHA 2011 Scientific Statement
+    on Triglycerides which favors geometric means). Log-scale SD is
+    remarkably stable (~0.45-0.55) across adult populations regardless
+    of mean TG level, because the skew is largely multiplicative.
+    If a primary paper reports raw TG mean + SD, approximate log-scale
+    SD via delta method: SD_log ~ SD_raw / mean_raw (valid for CV < 1).
+
+total_chol_mgdl:
+  sd_reference: 40
+  sd_plausible_min: 20
+  sd_plausible_max: 80
+  source: "NHANES adult"
+
+# ---------------- Glycemic ----------------
+
+hba1c_pct:
+  sd_reference: 1.2
+  sd_plausible_min: 0.6
+  sd_plausible_max: 2.4
+  source: "Mixed T2DM / non-T2DM adult"
+  notes: >
+    Non-diabetic adults: ~0.5. Mixed samples: ~1.0-1.5. T2DM-only
+    trials: ~1.5-2.0. For T2DM-specific analyses, consider increasing
+    reference to 1.5.
+
+fbg_mgdl:
+  sd_reference: 20
+  sd_plausible_min: 10
+  sd_plausible_max: 40
+  source: "Mixed adult populations"
+  notes: >
+    Non-diabetic: ~10-12. T2DM: ~30-50. Use T2DM-specific reference
+    (~35) for trials restricted to diabetics.
+
+# ---------------- Inflammation ----------------
+
+crp_log_mgL:
+  sd_reference: 1.0
+  sd_plausible_min: 0.5
+  sd_plausible_max: 2.0
+  source: "Mixed adult populations, natural-log transformed"
+  notes: >
+    CRP is strongly right-skewed and typically meta-analyzed on the
+    log scale. Raw CRP SDs are not comparable across studies.
+    If primary paper reports raw CRP, log-transform before standardizing.
+    Assay sensitivity (hs-CRP vs standard) does not meaningfully change
+    the log-scale SD.
+
+# ============================================================================
+# Notes for future expansion
+# ============================================================================
+#
+# Outcomes to add as the project encounters them:
+#   - insulin_log_uIUml       (log insulin, expect SD ~0.7)
+#   - homa_ir_log             (log HOMA-IR, expect SD ~0.8)
+#   - vo2max_mlkgmin          (expect SD ~6-8 in adult untrained)
+#   - grip_strength_kg        (large sex effects; stratify)
+#
+# For any outcome not in this file, falling back to back-calculated SD
+# is acceptable IF the implied SD is physically plausible. Document
+# the decision in the extraction sheet's sd_source column.
