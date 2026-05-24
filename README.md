@@ -531,10 +531,8 @@ The `simulation/` directory is a **separate sub-project** (own
 README/config/scripts) that reuses the `00_utils.R` estimand/schema
 layer and writes to its own output root. It sits beside the nutrition
 workflow and must not be moved into `scripts/` or `output/`. The legacy
-v2 `resampling/` sub-project has been **archived** to
-[`archive/resampling_v2_legacy/`](archive/resampling_v2_legacy/README_ARCHIVE.md)
-(frozen provenance; not part of the active workflow — its active v4
-successors live in `simulation/scripts/45,60,65,70,75`). See
+v2 `resampling/` sub-project is **retired**; its active v4 successors
+live in `simulation/scripts/45, 60, 65, 70, 75`. See
 [`docs/pipeline_layout.md`](docs/pipeline_layout.md).
 
 ### Simulation-ready main-pipeline convention

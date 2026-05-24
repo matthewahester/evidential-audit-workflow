@@ -8,21 +8,27 @@ selected-rigor pipeline. Not a CI spec — a human pre-flight.
 - [ ] `output/_scratch/` removed or excluded; no scratch CSVs beside trusted
       sidecars.
 - [ ] No private notes, credentials, or internal release memos committed.
-- [ ] `archive/RoBMA_3_6/` and `archive/resampling_v2_legacy/` are
-      clearly archival and not referenced by any active script.
-- [ ] `simulation/` is intentionally included (active sub-project) or
-      intentionally excluded — decide and be consistent. (The legacy v2
-      resampling sub-project is archived under
-      `archive/resampling_v2_legacy/`, not a root-level folder.)
+- [ ] `archive/RoBMA_3_6/` remains ignored (not committed). Other retired
+      sub-projects (v2 resampling, the inactive renv lockfile) were removed
+      from the public tree during cleanup; only
+      `archive/55_orchard_visuals.R` is tracked under `archive/`.
+- [ ] `simulation/scripts/` and `simulation/config/` are committed
+      (active sub-project source). `simulation/manifests/`,
+      `simulation/latent/`, and `data/sim_<cell_slug>/` are intentionally
+      **deferred** until `B` and `n_reps` are manuscript-frozen — verify
+      they are still untracked.
 
 ## 2. `.gitignore`
 
-- [ ] Large fit objects (`fit_RE4_*.rds`, `fit_RoBMA4_*.rds`,
-      `zplot_*_*.rds`) excluded by default; force-add only specific fits that
-      must ship.
-- [ ] `output/_scratch/` ignored.
+- [ ] Large fit objects (`*.rds`, `*.Rds`, `*.RData`, `*.rda`) excluded
+      globally; force-add only specific fits that must ship.
+- [ ] `output/_scratch/`, `output_sim_v30/`, `simulation/results/`,
+      and `archive/RoBMA_3_6/` ignored.
+- [ ] The three giant `*_size_curve_draws.csv` files explicitly listed
+      as belt-and-braces ignores (each >100 MB).
 - [ ] Committed: per-stratum `*_robma_summary.csv`,
-      `*_zplot_diagnostics.csv`, and `output/overview/` tables/figures.
+      `*_zplot_diagnostics.csv`, `output/<stratum>/<source>/{audit/,plots/}`,
+      `output/<stratum>/plots/`, and `output/overview/` tables/figures.
 
 ## 3. Outputs regenerate from scripts
 
@@ -53,8 +59,8 @@ selected-rigor pipeline. Not a CI spec — a human pre-flight.
       key package versions and the "date checked" reflect the shipped build.
       **`docs/environment.md` is the current reproducibility record.**
 - [ ] renv is **intentionally inactive during active development** (plain user
-      library). Stale renv artifacts are archived under
-      `archive/renv_inactive_<date>/`, not at the repo root; `.gitignore`
+      library). The stale RoBMA-3.6 renv lockfile was archived and then
+      removed from the public tree in commit `3d47a06`; `.gitignore`
       blocks accidental re-tracking. Do not claim `renv::restore()` is the
       reproduction path.
 - [ ] renv is reintroduced **only at release freeze, after an explicit

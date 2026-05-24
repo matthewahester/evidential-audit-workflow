@@ -34,16 +34,28 @@ exceptions.
 | Public documentation | `README.md`, `scripts/README.md`, `docs/*.md`, `simulation/README*.md`, `simulation/design_memo*.md` | How to read + run the repo. |
 | Reproducibility metadata | `CITATION.cff`, `LICENSE`, `LICENSE-data`, `.gitignore`, `nutrition_publication_bias.Rproj` | Standard repo skeleton. |
 | Inputs (immutable) | `data/<stratum>/<source>/*.csv`, `data/<stratum>/<source>/*.xlsx`, `data/reference_sds.yml` | Analysis-ready empirical inputs. Never overwritten by the pipeline. |
-| Synthetic inputs (small, regenerable but cheap) | `data/sim_<cell_slug>/sim2026/repNNNN.csv` (900 files, a few MB total) | Lets a reader refit one cell without rerunning the DGM. |
 | Simulation design | `simulation/config/design_v3_full36.csv` | Authoritative 36-cell design grid. |
-| Simulation provenance | `simulation/manifests/*.csv`, `simulation/latent/sim_*/sim2026/*_latent.csv` | < 30 MB total; central to reproducibility of the synthetic library. |
 | Lean v4 sidecars (the canonical reporting primitive) | `output/<stratum>/<stratum>_robma_summary.csv`, `output/<stratum>/<stratum>_zplot_diagnostics.csv` | Regenerates every overview table without rerunning MCMC. |
 | Per-source audit artifacts | `output/<stratum>/<source>/audit/*.csv` (model_family_validation, models_individual, models_marginal) | First-class audit per [`output_contract.md`](output_contract.md) §1. (The `.bak` doubles are ignored.) |
 | Per-source z-plot PDFs | `output/<stratum>/<source>/plots/*_z_plot.pdf`, `*_z_extrapolation.pdf` | Manuscript-relevant; small vector PDFs. |
 | Overview tables | `output/overview/*.csv`, `output/overview/*.tex` | v4 reporting from `60_estimand_tables.R`. |
 | Overview figures | `output/overview/corpus_*.pdf` | Corpus-level manuscript figures from `70_corpus_visuals.R`. |
 | Stratum figures | `output/<stratum>/plots/*.pdf` | Stratum/source inspection figures from `50_stratum_visuals.R`. |
-| Small archive metadata | `archive/55_orchard_visuals.R` (frozen retired diagnostic), `archive/renv_inactive_<date>/{README.md, renv.lock}`, `archive/resampling_v2_legacy/{README_ARCHIVE.md, resampling_migration_map.md}` | Provenance pointers; each is a small text file. |
+| Small archive metadata | `archive/55_orchard_visuals.R` (frozen retired diagnostic) | Sole archived item still tracked; retired v2 resampling sub-project and the inactive renv lockfile were removed from the public tree during cleanup. |
+
+## Defer until manuscript freeze
+
+These are real, useful local artifacts; they are **not** ignored
+(`git status` will show them as untracked), but they are intentionally
+**not** committed yet. Commit them in a single "simulation library
+freeze" commit only when `B` (resampling/sampling replicate count) and
+`n_reps` (per-cell synthetic-library depth) are settled for the
+submission/preprint:
+
+| Category | Examples | Why deferred |
+|---|---|---|
+| Synthetic data inputs | `data/sim_<cell_slug>/sim2026/repNNNN.csv` (~900–5,400 files, a few MB to ~17 MB total) | Library will be regenerated if `n_reps` changes (current 150 may move to 500 for the finite-library sensitivity tier). |
+| Simulation provenance | `simulation/manifests/*.csv`, `simulation/latent/sim_*/sim2026/*_latent.csv` (< 30 MB total) | Pinned to the current generation run; regenerated atomically alongside `data/sim_*/`. The current 125-vs-150 latent/data mismatch is a concrete signal that the library is mid-state. |
 
 ## Ignore (out of Git, regenerable or archival)
 
@@ -98,11 +110,11 @@ Once a file is tracked, the `.gitignore` rule no longer applies to it
 (git ignore-rules only affect untracked files). Document any force-add
 in the release notes so future readers know why an outlier ships.
 
-## Sim overview / summary CSVs (decision pending)
+## Sim overview / summary CSVs (deferred until manuscript freeze)
 
 The simulation sub-project produces several small, manuscript-candidate
-summary CSVs that the current ignore rules block (they live inside
-`simulation/results/` or `output_sim_v30/overview/`):
+summary CSVs that live inside the ignored `simulation/results/` and
+`output_sim_v30/overview/` trees:
 
 - `simulation/results/cell_diagnostics_{rigor,component}.csv`
 - `simulation/results/fit_progress_{live,overall}.csv`
@@ -112,6 +124,7 @@ summary CSVs that the current ignore rules block (they live inside
 - `simulation/results/figures/**/*.pdf` + `*_report.md`
 - `output_sim_v30/overview/*.csv`, `*.tex`
 
-These are intentionally left ignored by default. Force-add the specific
-files the final manuscript revision cites; do not relax the directory
-rule (the giant raw-draws CSVs share those directories).
+**Decision (resolved)**: defer until `B` and `n_reps` are
+manuscript-frozen. When the freeze commit lands, force-add the specific
+small files the manuscript cites; do **not** relax the directory ignore
+rules (the multi-GB raw-draws CSVs share those directories).

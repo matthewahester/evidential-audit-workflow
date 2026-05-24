@@ -1,9 +1,9 @@
 # Pipeline Layout
 
 What each top-level folder is for, and the operating rule for keeping the
-nutrition workflow and the simulation study from entangling. (The legacy
-v2 resampling sub-project has been archived to
-`archive/resampling_v2_legacy/` and is no longer an active root.)
+nutrition workflow and the simulation study from entangling. The legacy
+v2 `resampling/` sub-project has been retired (its active v4 successors
+live in `simulation/scripts/`); see the retired-material notes below.
 
 ## Repository tree
 
@@ -12,47 +12,40 @@ v2 resampling sub-project has been archived to
 ├── scripts/                 Active RoBMA 4.0 rigor pipeline (00–70) + README
 ├── data/                    Immutable analysis-ready CSVs + extraction .xlsx
 │   ├── <path_stratum>/<source_article>/<dataset_id>.csv (+ .xlsx)
-│   └── sim_<cell_slug>/sim2026/repNNNN.csv  audit-ready SYNTHETIC CSVs
-│                              (same loader; truth/latent files do NOT go here)
+│   └── sim_<cell_slug>/sim2026/repNNNN.csv  generated SYNTHETIC CSVs
+│                              (DEFERRED — local; not committed until
+│                              B/n_reps are manuscript-frozen)
 ├── output/                  ACTIVE nutrition output root (one scheme/corpus)
 │   ├── <stratum>/                       per-stratum sidecars + per-source fits
 │   │   ├── <stratum>_robma_summary.csv
 │   │   ├── <stratum>_zplot_diagnostics.csv
-│   │   └── <source_article>/{audit,plots}/ + fit/zplot .rds
+│   │   ├── plots/                       per-stratum manuscript figures (50)
+│   │   └── <source_article>/{audit,plots}/ + fit/zplot .rds (rds IGNORED)
 │   └── overview/            60 reporting tables + 70 corpus figures
-├── output_sim_v30/          SEPARATE simulation output root (same structure)
-│   ├── <stratum>/                       synthetic per-stratum sidecars + fits
-│   └── overview/            60 reporting tables (simulation registry)
-├── docs/                    This documentation set
-│   ├── output_contract.md       active v4 output contract (authoritative)
-│   ├── pipeline_layout.md       this file
-│   ├── visuals.md               figure-by-figure axis contract
-│   ├── script_index.md          active-script inventory
-│   ├── runbook.md               canonical run order (A–K)
-│   ├── diagnostic_interpretation_guide.md  how to read each diagnostic
-│   ├── manuscript_bridge.md     claims → artifacts map
-│   ├── project_cleanup_ledger.md  transition cleanup record
-│   └── release_checklist.md     public-release checklist
-├── documentation/           Vendored RoBMA 4.0 README + .agents instructions
+├── output_sim_v30/          SEPARATE simulation output root (IGNORED;
+│                            16 GB of regenerable sim sidecars + fits)
+├── docs/                    This documentation set (Markdown)
 ├── simulation/              SEPARATE sub-project (own README/config/scripts)
-│   └── results/             sim diagnostics + Q3 sampling / agreement CSVs
-│       ├── empirical_resampling/             empirical Track A outputs (Q2)
-│       ├── empirical_weighted_synthetic/     Q3 primaries + detail/ (renamed from synthetic_composition/ in 2026-05)
-│       ├── agreement/                        empirical-vs-empirical-weighted-synthetic agreement
-│       └── figures/empirical_weighted_synthetic/   Q3 visuals (PDF; renamed from figures/composition/ in 2026-05)
-├── archive/                 Retired / frozen material (NOT active)
-│   ├── RoBMA_3_6/           Retired RoBMA 3.6 / topic world (not used)
-│   └── resampling_v2_legacy/  FROZEN legacy v2 resampling sub-project
-│       ├── README_ARCHIVE.md
-│       ├── resampling/        (frozen; do not run)
-│       └── resampling_migration_map.md  (archived provenance record)
+│   ├── scripts/             active simulation source (00–75)
+│   ├── config/              canonical 36-cell design grid
+│   ├── manifests/, latent/  DEFERRED — local generated artifacts;
+│                            not committed until B/n_reps are manuscript-frozen
+│   └── results/             IGNORED — sim diagnostics + raw draws
+│                            (4 GB+; regenerable from scripts + design CSV)
+├── archive/                 Retired / frozen material
+│   ├── 55_orchard_visuals.R   small retired diagnostic (committed for provenance)
+│   └── RoBMA_3_6/             IGNORED — 71 GB RoBMA-3.6 snapshot
 ├── Rigor_Manuscript/        Manuscript source (pdfLaTeX; 01_main, 02_supplement,
-│                            03_exec_summary, 05_figures, 06_refs)
-├── data_dictionary.md       Input-side schema
-├── output_dictionary.md     Redirect → docs/output_contract.md
-├── renv.lock                Pinned package versions for the v4 run
+│                            03_exec_summary, 05_figures, 06_refs) — sibling
+│                            working directory, not inside this repo
 ├── CITATION.cff, LICENSE, LICENSE-data, README.md
 ```
+
+> Retired sub-projects (resampling v2, the inactive renv lockfile archive)
+> were archived during cleanup and subsequently removed from the public
+> tree. Provenance is preserved in commit history (search the log for
+> `archive: remove inactive renv lockfile` and the surrounding
+> `publication-cleanup:` commits).
 
 ## One scheme/corpus per output root (the operating rule)
 
@@ -78,8 +71,8 @@ sidecars and its own `overview/`, all consuming the same `00_utils.R`
 estimand/schema layer. `simulation/` is a **separate sub-project** with
 its own `README`, `config`, and `scripts`; it is out of scope for the
 main nutrition pipeline scripts and must not be moved into `scripts/` or
-`output/`. The legacy v2 resampling sub-project is **archived** under
-`archive/resampling_v2_legacy/` (frozen; not an active root).
+`output/`. The legacy v2 resampling sub-project is **retired** and was
+removed from the public tree during cleanup.
 
 A future `(scheme, stratum)` directory refactor is explicitly **not** part of
 the current contract; revisit only if multiple schemes must coexist in one

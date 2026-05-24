@@ -1,4 +1,14 @@
-# Visual color audit (RoBMA v4)
+# Visual color audit (RoBMA v4) — HISTORICAL
+
+> **Historical audit / provenance only.** This document captures one
+> pre-pass color audit and the rewires that followed. The **active**
+> color contract is in
+> [`visual_color_contract.md`](visual_color_contract.md); the active
+> visual inventory is in [`visuals.md`](visuals.md). Path references
+> below sometimes use pre-rename script names (notably
+> `simulation/scripts/75_composition_visuals.R`, which has since been
+> renamed to `75_analysis_visuals.R`); those names are preserved here
+> so the audit table matches the diff that produced the rewires.
 
 Snapshot of the pre-pass color usage across the visual layer, the
 inconsistencies it surfaced, and what changed.

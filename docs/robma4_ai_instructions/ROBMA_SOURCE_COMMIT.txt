@@ -1,4 +1,0 @@
-09d07b90f91c26d4e2eac863647cb858633f8d78
-Source: https://github.com/FBartos/RoBMA/tree/master/.agents/instructions
-Vendored: 2026-05-15
-Commit: 09d07b90f91c26d4e2eac863647cb858633f8d78

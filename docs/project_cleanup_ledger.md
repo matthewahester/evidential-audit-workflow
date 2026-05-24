@@ -1,5 +1,14 @@
 # Project Cleanup Ledger
 
+> **HISTORICAL — not an active runbook.** This ledger records the
+> coherence-audit / transition-cleanup passes that prepared the v4
+> pipeline for public release. Live commit/ignore/defer policy is in
+> [`output_commit_policy.md`](output_commit_policy.md); current
+> layout is in [`pipeline_layout.md`](pipeline_layout.md); current
+> environment description is in [`environment.md`](environment.md).
+> The entries below are kept verbatim for provenance even where their
+> targets were subsequently deleted from the public tree.
+
 Record of the coherence-audit / transition-cleanup pass for the active
 RoBMA v4 selected-rigor project. Conservative by design: no code logic
 changed, no deletions performed, define-only behavior preserved
@@ -9,10 +18,12 @@ MCMC and zero writes to `output/`, `output_sim_v30/`,
 
 > **Update 2026-05-18 (resampling archive pass):** the root-level
 > `resampling/` folder and `docs/resampling_migration_map.md` were
-> subsequently **moved** to `archive/resampling_v2_legacy/` (see
-> `archive_candidates` below and `archive/resampling_v2_legacy/README_ARCHIVE.md`).
-> Historical entries below that mention the old root paths are retained
-> as the original record.
+> moved to `archive/resampling_v2_legacy/`. The
+> `archive/resampling_v2_legacy/` tree was **subsequently removed**
+> from the public repo during pre-push cleanup; history is preserved
+> in commits prior to that removal. Historical entries below that
+> mention the old root paths or the intermediate archive path are
+> retained as the original record.
 
 ## stale_text_removed (documentation only)
 
@@ -92,8 +103,12 @@ deletion candidate.
   no longer carries `resampling/` or `docs/resampling_migration_map.md`.
   All active doc/script references updated to the archive path or
   removed.
-- `archive/RoBMA_3_6/`, `archive/renv_inactive_2026-05-17/` — already
-  archived; leave as-is.
+- `archive/RoBMA_3_6/` — still on disk and ignored via `.gitignore`;
+  never committed.
+- `archive/renv_inactive_2026-05-17/` — was archived during this pass,
+  then **subsequently removed** from the public tree in commit
+  `3d47a06` (`archive: remove inactive renv lockfile`). The git history
+  retains the original lockfile through the intermediate commit.
 
 ## deferred_extensions
 

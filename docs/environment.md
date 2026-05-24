@@ -22,11 +22,15 @@ development (see below).
 no `renv/activate.R`, `RENV_PROJECT` unset; the plain R user library is used.
 
 The stale RoBMA-3.6-era `renv.lock` and the renv infra (`.Rprofile`,
-`renv/.gitignore`, `renv/activate.R`, `renv/settings.json`) were **archived**
-to `archive/renv_inactive_2026-05-17/` (moved, not deleted; `renv.lock` via
-`git mv` so history is preserved). `.gitignore` now ignores any
-accidentally-regenerated root `renv/`, `renv.lock`, `.Rprofile` so a stray
-renv run is never silently tracked.
+`renv/.gitignore`, `renv/activate.R`, `renv/settings.json`) were retired
+during cleanup: the lockfile was first moved to
+`archive/renv_inactive_2026-05-17/` via `git mv` (commit `4597cbc`,
+`publication-cleanup: remove retired pre-v4 artifacts`), and then the
+inactive renv archive was removed from the public tree in commit
+`3d47a06` (`archive: remove inactive renv lockfile`). Git history
+preserves the original lockfile through those commits.
+`.gitignore` now ignores any accidentally-regenerated root `renv/`,
+`renv.lock`, `.Rprofile` so a stray renv run is never silently tracked.
 
 renv is intentionally inactive during active development. The current
 reproducibility record is **this file** (`docs/environment.md`). renv may be
