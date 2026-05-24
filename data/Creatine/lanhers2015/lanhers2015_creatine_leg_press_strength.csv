@@ -1,5 +1,5 @@
 ﻿Author,,loading_dose,total_dose,duration,training,t0-t1,d,lCI,uCI,se_d,J,g,se_g,notes
-Brosea,-,0,490,98,Strength,98,0.023,-1.067,1.114,0.556377551,1,0.023,0.556377551,n not available so smd used
+Brosea,-,0,490,98,Strength,98,0.023,-1.067,1.114,0.556377551,1,0.023,0.556377551,"n not available, d used"
 Broseb,-,0,490,98,Strength,98,0.282,-0.739,1.302,0.520663265,1,0.282,0.520663265,
 Camica,Sedentary,0,70,28,-,28,0.076,-0.458,0.61,0.27244898,1,0.076,0.27244898,
 Camicb,Sedentary,0,35,28,-,28,0.405,-0.134,0.944,0.275,1,0.405,0.275,
