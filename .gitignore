@@ -1,18 +1,24 @@
 # =============================================================================
-# .gitignore for the bias-robust Bayesian meta-analysis pipeline repository
+# .gitignore for the RoBMA 4.0 rigor-estimand pipeline repository
 # =============================================================================
 #
-# Policy:
-#   - Track:    data/ (analysis-ready CSVs + extraction workbooks),
-#               scripts/, documentation/, manuscript/,
-#               per-topic *_robma_summary.csv files,
-#               output/<topic>/plots/*.pdf, and output/overview/*
-#   - Omit:     large fitted RoBMA objects (regenerable), session detritus,
-#               local environment, editor/OS noise.
+# Policy (see docs/output_commit_policy.md for the authoritative list):
+#   - COMMIT:    source code (scripts/, simulation/scripts/), documentation
+#                (docs/, README.md, scripts/README.md, simulation/README*.md,
+#                CITATION.cff, LICENSE*), data inputs (data/<stratum>/*.csv,
+#                *.xlsx), per-stratum sidecars
+#                (output/<stratum>/<stratum>_robma_summary.csv,
+#                _zplot_diagnostics.csv), the v4 overview tables/figures
+#                under output/overview/, per-source audit CSVs and z-plot
+#                PDFs under output/<stratum>/<source>/.
+#   - IGNORE:    fitted model objects (*.rds / *.Rds / *.RData), the entire
+#                simulation output tree (output_sim_v30/, simulation/results/),
+#                the heavy RoBMA-3.6 archive snapshot, atomic-rename leftovers
+#                (*.bak), local R/editor/OS junk.
 #
-# To opt a fitted artifact back into version control (e.g., a single
-# representative fit included with the manuscript), use:
-#     git add -f output/<topic>/<author>/fit_RoBMA_<stem>.rds
+# To opt a normally-ignored file IN (e.g., a single representative fit, or a
+# sim summary CSV you decide to ship), force-add it:
+#     git add -f <path>
 # =============================================================================
 
 
@@ -31,27 +37,69 @@
 *-Ex.R
 
 
-# ---- renv: pin the lockfile, ignore the local library -----------------------
-renv/library/
-renv/staging/
-renv/python/
-renv/local/
-renv/cellar/
-# Keep: renv.lock, renv/activate.R, renv/settings.json, .Rprofile
+# ---- R caches ---------------------------------------------------------------
+.Rcache/
+.cache/
+*_cache/
 
 
-# ---- Fitted model objects (regenerable; may be omitted from public repo) ----
-# Excluded by default per README "What is included in the public repository".
-# Force-add a specific file with `git add -f` if you want to ship one.
-output/**/fit_RE_*.rds
-output/**/fit_RoBMA_*.rds
-output/**/zcurve_RE_*.rds
-output/**/zcurve_RoBMA_*.rds
-output/**/**/plots/
-output/**/**/summary/
-# Catch-all guard against future fit types written under output/.
-# Documented summary artifacts are CSV/PDF/PNG/TEX, not RDS, so this is safe.
-output/**/*.rds
+# ---- renv: INTENTIONALLY INACTIVE during active development -----------------
+# The pipeline uses the plain R user library, not renv. Stale renv infra
+# was archived to archive/renv_inactive_<date>/ (small, intentionally
+# tracked for provenance). The authoritative environment record is
+# docs/environment.md. Ignore any accidentally-regenerated renv artifacts
+# at the repo root so a stray renv run is never silently tracked.
+/renv/
+/renv.lock
+/.Rprofile
+# Also ignore renv library/staging anywhere they might appear:
+**/renv/library/
+**/renv/staging/
+**/renv/local/
+**/renv/lock.json
+
+
+# ---- Heavy model objects (regenerable; never shipped by default) ------------
+# Every fit and zplot artifact written by 20_robma_fit.R is an *.rds:
+#   fit_RE4_*.rds, fit_RoBMA4_*.rds, zplot_RE4_*.rds, zplot_RoBMA4_*.rds.
+# Documented summary artifacts are CSV / PDF / PNG / TEX — never RDS — so
+# a global *.rds ignore is safe across this repo.
+*.rds
+*.Rds
+*.RData
+*.rda
+
+
+# ---- Active generated simulation output roots -------------------------------
+# Heavy generated artifacts: 21,600+ .rds fits, 5 GB+ of audit CSVs, and
+# multi-GB raw resampling/sampling draws. The lean v4 sim sidecars,
+# overview tables, and small diagnostic CSVs are all regenerable from the
+# committed source + data + design CSV; force-add specific small files
+# (e.g. a fit_progress_overall.csv snapshot or one cell_diagnostics_*.csv)
+# only if the manuscript pins them.
+output_sim_v30/
+simulation/results/
+simulation/results_archive*/
+
+# Heavy raw-draws CSVs that exceed GitHub's 100-MB-per-file limit. Belt-and-
+# braces in case simulation/results/ ever becomes selectively tracked.
+simulation/results/**/*_size_curve_draws.csv
+simulation/results/empirical_resampling/empirical_resampling_size_curve.csv
+
+# Local probe scratch under any output root.
+output*/_scratch/
+
+
+# ---- Heavy archives (provenance only; not shipped) --------------------------
+# archive/ is the retirement yard. Small README/lineage files inside it
+# remain commit-eligible, but the heavy RoBMA-3.6 snapshot (~70 GB) must
+# never be committed. Generic guards catch any per-archive output/results/
+# library trees that someone might drop in later.
+archive/RoBMA_3_6/
+archive/**/output*/
+archive/**/results*/
+archive/**/library/
+archive/**/staging/
 
 
 # ---- Local-only / scratch ---------------------------------------------------
@@ -65,6 +113,14 @@ tmp/
 Rplots.pdf
 ~$*.xlsx
 ~$*.xls
+
+
+# ---- Internal / planning artifacts (local-only, never shipped) --------------
+# Repo-cleanup audits, scratch design notes, and other internal planning
+# material. The leading underscore is the convention for "internal" in this
+# repo; keep it consistent if new internal folders are added.
+_repo_cleanup/
+
 
 # ---- Editor / IDE -----------------------------------------------------------
 .vscode/
@@ -93,6 +149,22 @@ manuscript/**/*.synctex.gz
 manuscript/**/*.run.xml
 
 
-# ---- Logs and large diagnostics ---------------------------------------------
+# ---- Logs -------------------------------------------------------------------
 *.log
 batch_status_*.csv
+
+
+# =============================================================================
+# NOTES on rules that USED to be here and were removed
+# =============================================================================
+# - output/**/fit_RE_*.rds, output/**/fit_RoBMA_*.rds,
+#   output/**/zcurve_RE_*.rds, output/**/zcurve_RoBMA_*.rds,
+#   output/**/*.rds                  -> superseded by global *.rds above
+# - output/**/**/plots/               REMOVED: this rule incorrectly ignored
+#                                     the manuscript-relevant per-source
+#                                     z-plot PDFs at
+#                                     output/<stratum>/<source>/plots/*.pdf,
+#                                     which are intended public artifacts
+#                                     per docs/output_contract.md §1.
+# - output/**/**/summary/             REMOVED: no /summary/ subdir is written
+#                                     by the active pipeline.
