@@ -1,0 +1,7 @@
+"quantity","validation_class","individual_prior","individual_post","individual_BF","package_prior","package_post","package_BF_reported","package_BF_check","abs_diff_prior","within_tol_prior","abs_diff_post","within_tol_post","bf_log10_diff","bf_match"
+"effect","package_marginal",0.5,0.101966666666667,0.11354441186296,0.5,0.101966666666667,0.11354441186296,0.11354441186296,0,TRUE,0,TRUE,0,TRUE
+"het","package_marginal",0.5,0.8307,4.90667454223272,0.5,0.8307,4.90667454223272,4.90667454223272,0,TRUE,0,TRUE,0,TRUE
+"bias","package_marginal",0.5,0.3214,0.473622163277336,0.5,0.3214,0.473622163277336,0.473622163277336,0,TRUE,0,TRUE,0,TRUE
+"no_bias","derived_no_package_analogue",0.5,0.6786,2.11138767890479,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"rigor_effect","derived_no_package_analogue",0.25,0.0700333333333333,0.225922076060074,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"rigor_no_effect","derived_no_package_analogue",0.25,0.608566666666667,4.66414033892532,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA

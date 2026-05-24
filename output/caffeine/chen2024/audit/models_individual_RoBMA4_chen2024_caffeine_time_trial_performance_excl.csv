@@ -1,0 +1,37 @@
+"Effect","Heterogeneity","Publication Bias","prior_prob","post_prob","inclusion_BF","BF_error_percent","effect_present","het_present","bias_present","mu_family","tau_family","omega_family","rigor_family"
+"Spike(0)","Spike(0)","None",0.125,2e-04,0.0014002800560112,40.8289113248605,FALSE,FALSE,FALSE,"mu0","tau0","omega0",FALSE
+"Normal(0, 0.71)","Spike(0)","None",0.125,0.0979666666666667,0.760245371567939,5.19661301882781,TRUE,FALSE,FALSE,"muplus","tau0","omega0",TRUE
+"Spike(0)","Normal(0, 0.35)[0, Inf]","None",0.125,5e-04,0.00350175087543772,25.8276372658447,FALSE,TRUE,FALSE,"mu0","tauplus","omega0",FALSE
+"Normal(0, 0.71)","Normal(0, 0.35)[0, Inf]","None",0.125,0.0468666666666667,0.344198083514024,5.24096160515143,TRUE,TRUE,FALSE,"muplus","tauplus","omega0",TRUE
+"Spike(0)","Spike(0)","omega[two-sided: .05]",0.0104166666666667,3.33333333333333e-05,0.00316677222574086,100.003333444445,FALSE,FALSE,TRUE,"mu0","tau0","omegaplus",FALSE
+"Normal(0, 0.71)","Spike(0)","omega[two-sided: .05]",0.0104166666666667,0.0036,0.343235648334002,11.3543697117652,TRUE,FALSE,TRUE,"muplus","tau0","omegaplus",FALSE
+"Spike(0)","Normal(0, 0.35)[0, Inf]","omega[two-sided: .05]",0.0104166666666667,0,0,NA,FALSE,TRUE,TRUE,"mu0","tauplus","omegaplus",FALSE
+"Normal(0, 0.71)","Normal(0, 0.35)[0, Inf]","omega[two-sided: .05]",0.0104166666666667,0.0022,0.209460813790339,14.5290387220362,TRUE,TRUE,TRUE,"muplus","tauplus","omegaplus",FALSE
+"Spike(0)","Spike(0)","omega[two-sided: .05, .1]",0.0104166666666667,3.33333333333333e-05,0.00316677222574086,100.003333444443,FALSE,FALSE,TRUE,"mu0","tau0","omegaplus",FALSE
+"Normal(0, 0.71)","Spike(0)","omega[two-sided: .05, .1]",0.0104166666666667,0.0018,0.17130835503907,15.7325180047988,TRUE,FALSE,TRUE,"muplus","tau0","omegaplus",FALSE
+"Spike(0)","Normal(0, 0.35)[0, Inf]","omega[two-sided: .05, .1]",0.0104166666666667,0,0,NA,FALSE,TRUE,TRUE,"mu0","tauplus","omegaplus",FALSE
+"Normal(0, 0.71)","Normal(0, 0.35)[0, Inf]","omega[two-sided: .05, .1]",0.0104166666666667,5e-04,0.0475237618809405,25.8272926883041,TRUE,TRUE,TRUE,"muplus","tauplus","omegaplus",FALSE
+"Spike(0)","Spike(0)","omega[one-sided: .05]",0.0104166666666667,1e-04,0.0095009500950095,57.740800999061,FALSE,FALSE,TRUE,"mu0","tau0","omegaplus",FALSE
+"Normal(0, 0.71)","Spike(0)","omega[one-sided: .05]",0.0104166666666667,0.0023,0.219003708529618,15.0741161455375,TRUE,FALSE,TRUE,"muplus","tau0","omegaplus",FALSE
+"Spike(0)","Normal(0, 0.35)[0, Inf]","omega[one-sided: .05]",0.0104166666666667,3.33333333333333e-05,0.00316677222574086,100.003333444446,FALSE,TRUE,TRUE,"mu0","tauplus","omegaplus",FALSE
+"Normal(0, 0.71)","Normal(0, 0.35)[0, Inf]","omega[one-sided: .05]",0.0104166666666667,9e-04,0.0855770193173856,20.0672317486356,TRUE,TRUE,TRUE,"muplus","tauplus","omegaplus",FALSE
+"Spike(0)","Spike(0)","omega[one-sided: .025, .05]",0.0104166666666667,0.000166666666666667,0.0158359726621104,44.7234454987447,FALSE,FALSE,TRUE,"mu0","tau0","omegaplus",FALSE
+"Normal(0, 0.71)","Spike(0)","omega[one-sided: .025, .05]",0.0104166666666667,0.00196666666666667,0.187201496276009,14.2022956169743,TRUE,FALSE,TRUE,"muplus","tau0","omegaplus",FALSE
+"Spike(0)","Normal(0, 0.35)[0, Inf]","omega[one-sided: .025, .05]",0.0104166666666667,3.33333333333333e-05,0.00316677222574086,100.003333444444,FALSE,TRUE,TRUE,"mu0","tauplus","omegaplus",FALSE
+"Normal(0, 0.71)","Normal(0, 0.35)[0, Inf]","omega[one-sided: .025, .05]",0.0104166666666667,0.000766666666666667,0.0728892150648831,21.8895303790928,TRUE,TRUE,TRUE,"muplus","tauplus","omegaplus",FALSE
+"Spike(0)","Spike(0)","omega[one-sided: .05, .5]",0.0104166666666667,0.0451,4.48685726254058,4.42512025316865,FALSE,FALSE,TRUE,"mu0","tau0","omegaplus",FALSE
+"Normal(0, 0.71)","Spike(0)","omega[one-sided: .05, .5]",0.0104166666666667,0.0373666666666667,3.68762768793933,4.13633671587212,TRUE,FALSE,TRUE,"muplus","tau0","omegaplus",FALSE
+"Spike(0)","Normal(0, 0.35)[0, Inf]","omega[one-sided: .05, .5]",0.0104166666666667,0.0443,4.40357852882704,4.74753307377729,FALSE,TRUE,TRUE,"mu0","tauplus","omegaplus",FALSE
+"Normal(0, 0.71)","Normal(0, 0.35)[0, Inf]","omega[one-sided: .05, .5]",0.0104166666666667,0.0262,2.555966317519,4.57375563167786,TRUE,TRUE,TRUE,"muplus","tauplus","omegaplus",FALSE
+"Spike(0)","Spike(0)","omega[one-sided: .025, .05, .5]",0.0104166666666667,0.0572333333333333,5.76724534172471,4.17946822167638,FALSE,FALSE,TRUE,"mu0","tau0","omegaplus",FALSE
+"Normal(0, 0.71)","Spike(0)","omega[one-sided: .025, .05, .5]",0.0104166666666667,0.0320333333333333,3.14387547780571,4.27875893564891,TRUE,FALSE,TRUE,"muplus","tau0","omegaplus",FALSE
+"Spike(0)","Normal(0, 0.35)[0, Inf]","omega[one-sided: .025, .05, .5]",0.0104166666666667,0.0455,4.52854897852279,4.55673871784365,FALSE,TRUE,TRUE,"mu0","tauplus","omegaplus",FALSE
+"Normal(0, 0.71)","Normal(0, 0.35)[0, Inf]","omega[one-sided: .025, .05, .5]",0.0104166666666667,0.0207333333333333,2.01136905167132,5.15431308349461,TRUE,TRUE,TRUE,"muplus","tauplus","omegaplus",FALSE
+"Spike(0)","Spike(0)","PET",0.03125,0.0965333333333333,3.31227863046045,3.71123845200908,FALSE,FALSE,TRUE,"mu0","tau0","omegaplus",FALSE
+"Normal(0, 0.71)","Spike(0)","PET",0.03125,0.0530666666666667,1.73725711067305,5.33211988577381,TRUE,FALSE,TRUE,"muplus","tau0","omegaplus",FALSE
+"Spike(0)","Normal(0, 0.35)[0, Inf]","PET",0.03125,0.0403333333333333,1.30288294546718,4.17185654918516,FALSE,TRUE,TRUE,"mu0","tauplus","omegaplus",FALSE
+"Normal(0, 0.71)","Normal(0, 0.35)[0, Inf]","PET",0.03125,0.0224,0.710310965630115,5.71167330273687,TRUE,TRUE,TRUE,"muplus","tauplus","omegaplus",FALSE
+"Spike(0)","Spike(0)","PEESE",0.03125,0.1461,5.30401686380138,3.77311341847402,FALSE,FALSE,TRUE,"mu0","tau0","omegaplus",FALSE
+"Normal(0, 0.71)","Spike(0)","PEESE",0.03125,0.0799,2.69199000108684,6.67736099812013,TRUE,FALSE,TRUE,"muplus","tau0","omegaplus",FALSE
+"Spike(0)","Normal(0, 0.35)[0, Inf]","PEESE",0.03125,0.0607333333333333,2.00447157356803,3.73349576723891,FALSE,TRUE,TRUE,"mu0","tauplus","omegaplus",FALSE
+"Normal(0, 0.71)","Normal(0, 0.35)[0, Inf]","PEESE",0.03125,0.0325,1.04134366925065,5.82189457080126,TRUE,TRUE,TRUE,"muplus","tauplus","omegaplus",FALSE

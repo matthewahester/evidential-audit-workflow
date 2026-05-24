@@ -1,0 +1,37 @@
+"Effect","Heterogeneity","Publication Bias","prior_prob","post_prob","inclusion_BF","BF_error_percent","effect_present","het_present","bias_present","mu_family","tau_family","omega_family","rigor_family"
+"Spike(0)","Spike(0)","None",0.125,0.00526666666666667,0.0370618591247235,9.10486643693751,FALSE,FALSE,FALSE,"mu0","tau0","omega0",FALSE
+"Normal(0, 0.71)","Spike(0)","None",0.125,0.176633333333333,1.50168009392332,4.88274701271658,TRUE,FALSE,FALSE,"muplus","tau0","omega0",TRUE
+"Spike(0)","Normal(0, 0.35)[0, Inf]","None",0.125,0.00686666666666667,0.0483990065113781,8.10431156234503,FALSE,TRUE,FALSE,"mu0","tauplus","omega0",FALSE
+"Normal(0, 0.71)","Normal(0, 0.35)[0, Inf]","None",0.125,0.0858,0.656967840735069,4.60826514278744,TRUE,TRUE,FALSE,"muplus","tauplus","omega0",TRUE
+"Spike(0)","Spike(0)","omega[two-sided: .05]",0.0104166666666667,0.000866666666666667,0.0824047507840128,20.9965694074164,FALSE,FALSE,TRUE,"mu0","tau0","omegaplus",FALSE
+"Normal(0, 0.71)","Spike(0)","omega[two-sided: .05]",0.0104166666666667,0.0103666666666667,0.995149718751053,6.36158382077327,TRUE,FALSE,TRUE,"muplus","tau0","omegaplus",FALSE
+"Spike(0)","Normal(0, 0.35)[0, Inf]","omega[two-sided: .05]",0.0104166666666667,0.000366666666666667,0.0348461102404215,30.1594512380418,FALSE,TRUE,TRUE,"mu0","tauplus","omegaplus",FALSE
+"Normal(0, 0.71)","Normal(0, 0.35)[0, Inf]","omega[two-sided: .05]",0.0104166666666667,0.00416666666666667,0.397489539748954,9.86258706163455,TRUE,TRUE,TRUE,"muplus","tauplus","omegaplus",FALSE
+"Spike(0)","Spike(0)","omega[two-sided: .05, .1]",0.0104166666666667,0.000566666666666667,0.0538638561851716,24.2601740581403,FALSE,FALSE,TRUE,"mu0","tau0","omegaplus",FALSE
+"Normal(0, 0.71)","Spike(0)","omega[two-sided: .05, .1]",0.0104166666666667,0.0047,0.448608459760876,9.69242684467399,TRUE,FALSE,TRUE,"muplus","tau0","omegaplus",FALSE
+"Spike(0)","Normal(0, 0.35)[0, Inf]","omega[two-sided: .05, .1]",0.0104166666666667,3e-04,0.0285085525657697,33.3396305720452,FALSE,TRUE,TRUE,"mu0","tauplus","omegaplus",FALSE
+"Normal(0, 0.71)","Normal(0, 0.35)[0, Inf]","omega[two-sided: .05, .1]",0.0104166666666667,0.00153333333333333,0.145890365226681,15.3920375200597,TRUE,TRUE,TRUE,"muplus","tauplus","omegaplus",FALSE
+"Spike(0)","Spike(0)","omega[one-sided: .05]",0.0104166666666667,7e-04,0.0665465826078255,22.6414911251423,FALSE,FALSE,TRUE,"mu0","tau0","omegaplus",FALSE
+"Normal(0, 0.71)","Spike(0)","omega[one-sided: .05]",0.0104166666666667,0.00613333333333333,0.586262409444594,8.21787123156719,TRUE,FALSE,TRUE,"muplus","tau0","omegaplus",FALSE
+"Spike(0)","Normal(0, 0.35)[0, Inf]","omega[one-sided: .05]",0.0104166666666667,8e-04,0.0760608486789432,21.3214992740903,FALSE,TRUE,TRUE,"mu0","tauplus","omegaplus",FALSE
+"Normal(0, 0.71)","Normal(0, 0.35)[0, Inf]","omega[one-sided: .05]",0.0104166666666667,0.00243333333333333,0.231730544324523,13.867323982772,TRUE,TRUE,TRUE,"muplus","tauplus","omegaplus",FALSE
+"Spike(0)","Spike(0)","omega[one-sided: .025, .05]",0.0104166666666667,0.00223333333333333,0.212641566164434,13.7147390196189,FALSE,FALSE,TRUE,"mu0","tau0","omegaplus",FALSE
+"Normal(0, 0.71)","Spike(0)","omega[one-sided: .025, .05]",0.0104166666666667,0.0067,0.64079331521192,7.90541240288357,TRUE,FALSE,TRUE,"muplus","tau0","omegaplus",FALSE
+"Spike(0)","Normal(0, 0.35)[0, Inf]","omega[one-sided: .025, .05]",0.0104166666666667,0.00133333333333333,0.126835781041389,18.6143378461192,FALSE,TRUE,TRUE,"mu0","tauplus","omegaplus",FALSE
+"Normal(0, 0.71)","Normal(0, 0.35)[0, Inf]","omega[one-sided: .025, .05]",0.0104166666666667,0.00306666666666667,0.292229503811689,11.6615655223641,TRUE,TRUE,TRUE,"muplus","tauplus","omegaplus",FALSE
+"Spike(0)","Spike(0)","omega[one-sided: .05, .5]",0.0104166666666667,0.0113,1.08576919186811,6.42830823238882,FALSE,FALSE,TRUE,"mu0","tau0","omegaplus",FALSE
+"Normal(0, 0.71)","Spike(0)","omega[one-sided: .05, .5]",0.0104166666666667,0.00913333333333333,0.875664401534011,6.63281941227826,TRUE,FALSE,TRUE,"muplus","tau0","omegaplus",FALSE
+"Spike(0)","Normal(0, 0.35)[0, Inf]","omega[one-sided: .05, .5]",0.0104166666666667,0.00913333333333333,0.875664401534011,7.06804424160663,FALSE,TRUE,TRUE,"mu0","tauplus","omegaplus",FALSE
+"Normal(0, 0.71)","Normal(0, 0.35)[0, Inf]","omega[one-sided: .05, .5]",0.0104166666666667,0.00453333333333333,0.432627913206536,9.63395421367442,TRUE,TRUE,TRUE,"muplus","tauplus","omegaplus",FALSE
+"Spike(0)","Spike(0)","omega[one-sided: .025, .05, .5]",0.0104166666666667,0.0181333333333333,1.75448126018468,5.32145684234377,FALSE,FALSE,TRUE,"mu0","tau0","omegaplus",FALSE
+"Normal(0, 0.71)","Spike(0)","omega[one-sided: .025, .05, .5]",0.0104166666666667,0.0088,0.843422114608555,7.00645447046563,TRUE,FALSE,TRUE,"muplus","tau0","omegaplus",FALSE
+"Spike(0)","Normal(0, 0.35)[0, Inf]","omega[one-sided: .025, .05, .5]",0.0104166666666667,0.0119333333333333,1.1473584778355,6.74464550358045,FALSE,TRUE,TRUE,"mu0","tauplus","omegaplus",FALSE
+"Normal(0, 0.71)","Normal(0, 0.35)[0, Inf]","omega[one-sided: .025, .05, .5]",0.0104166666666667,0.00513333333333333,0.490182939087315,8.9465858090077,TRUE,TRUE,TRUE,"muplus","tauplus","omegaplus",FALSE
+"Spike(0)","Spike(0)","PET",0.03125,0.1576,5.79962013295347,3.75735519035504,FALSE,FALSE,TRUE,"mu0","tau0","omegaplus",FALSE
+"Normal(0, 0.71)","Spike(0)","PET",0.03125,0.0542,1.77648551490801,5.55232246966685,TRUE,FALSE,TRUE,"muplus","tau0","omegaplus",FALSE
+"Spike(0)","Normal(0, 0.35)[0, Inf]","PET",0.03125,0.0714,2.38358819728624,3.68282027206564,FALSE,TRUE,TRUE,"mu0","tauplus","omegaplus",FALSE
+"Normal(0, 0.71)","Normal(0, 0.35)[0, Inf]","PET",0.03125,0.0275333333333333,0.877699321313498,5.85866072122551,TRUE,TRUE,TRUE,"muplus","tauplus","omegaplus",FALSE
+"Spike(0)","Spike(0)","PEESE",0.03125,0.154233333333333,5.65313522248059,3.83604175849031,FALSE,FALSE,TRUE,"mu0","tau0","omegaplus",FALSE
+"Normal(0, 0.71)","Spike(0)","PEESE",0.03125,0.0432333333333333,1.40079434205484,5.03950015439477,TRUE,FALSE,TRUE,"muplus","tau0","omegaplus",FALSE
+"Spike(0)","Normal(0, 0.35)[0, Inf]","PEESE",0.03125,0.0728,2.43399482312338,4.11781274647465,FALSE,TRUE,TRUE,"mu0","tauplus","omegaplus",FALSE
+"Normal(0, 0.71)","Normal(0, 0.35)[0, Inf]","PEESE",0.03125,0.0200666666666667,0.63480508878155,6.26153794954586,TRUE,TRUE,TRUE,"muplus","tauplus","omegaplus",FALSE

@@ -1,0 +1,14 @@
+"component","label","Hypothesis","prior_prob","post_prob","inclusion_BF","BF_error_percent"
+"Effect","Spike(0)","Null",0.5,0.236466666666667,0.309700515148869,2.80542204103908
+"Effect","Normal(0, 0.71)","Alternative",0.5,0.763533333333333,3.22892585283338,2.80542204103908
+"Heterogeneity","Spike(0)","Null",0.5,0,0,NA
+"Heterogeneity","Normal(0, 0.35)[0, Inf]","Alternative",0.5,1,Inf,NA
+"Publication Bias","None","Null",0.5,0.278866666666667,0.386706110751595,2.10588782601819
+"Publication Bias","omega[two-sided: .05]","Alternative",0.0416666666666667,0.0140666666666667,0.328149300155521,5.26951790364284
+"Publication Bias","omega[two-sided: .05, .1]","Alternative",0.0416666666666667,0.0121,0.281708674967102,5.62244384724255
+"Publication Bias","omega[one-sided: .05]","Alternative",0.0416666666666667,0.0414333333333333,0.994157944152728,3.03393164584065
+"Publication Bias","omega[one-sided: .025, .05]","Alternative",0.0416666666666667,0.0342,0.814454338372334,3.33359742983006
+"Publication Bias","omega[one-sided: .05, .5]","Alternative",0.0416666666666667,0.162466666666667,4.46159356841519,2.1346846895738
+"Publication Bias","omega[one-sided: .025, .05, .5]","Alternative",0.0416666666666667,0.1475,3.97947214076246,2.40948255506026
+"Publication Bias","PET","Alternative",0.125,0.213933333333333,1.9050971079637,2.31261786724739
+"Publication Bias","PEESE","Alternative",0.125,0.0954333333333333,0.738511994693592,2.69224885222903
