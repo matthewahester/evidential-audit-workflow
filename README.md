@@ -19,8 +19,9 @@ This is the **active RoBMA 4.0 rigor pipeline**. RoBMA 4.0's
 product-space model representation supports exact extraction of
 branch-specific rigor Bayes factors from individual model prior/posterior
 probabilities. The completed RoBMA 3.6 analysis and its simulation/resampling
-artifacts are retired and live under `archive/RoBMA_3_6/`; they are not used
-by any active script and require the archived lockfile to reproduce.
+sub-projects are retired and are not part of the active public workflow;
+any locally-retained `archive/RoBMA_3_6/` snapshot is **ignored** via
+`.gitignore` and not required for any active script.
 
 ## Vocabulary
 
@@ -90,7 +91,7 @@ direction retained.
 **reusable evidential-audit workflow and estimand layer**: an end-to-end
 pipeline that turns the standard meta-analytic data structure (study-level
 *g* and *SE_g*) into bias-aware posterior summaries, component inclusion Bayes
-factors, exact branch/model-family probability summaries, \(BF_k^R\), rigor
+factors, exact branch/model-family probability summaries, $BF_k^R$, rigor
 direction labels, diagnostics, and scheme/stratum-level summaries under a
 single configuration. The nutrition application is the fully worked
 demonstration.
@@ -111,42 +112,42 @@ null/no-effect result, while still requiring that the evidence point toward
 models without an explicit publication-bias or small-study-effect adjustment
 component.
 
-For reconstructed meta-analytic outcome \(k\), let
+For reconstructed meta-analytic outcome $k$, let
 
-\[
+```math
 \mathcal{Y}_k=\{(y_{ki},SE_{ki}): i=1,\ldots,m_k\}
-\]
+```
 
-denote the study-level effect-size data, with \(y_{ki}\) corresponding to the
-input column `g` and \(SE_{ki}\) to `se_g`. Let
+denote the study-level effect-size data, with $y_{ki}$ corresponding to the
+input column `g` and $SE_{ki}$ to `se_g`. Let
 
-\[
+```math
 \mathcal{M}_k = \{M_{k1}, \ldots, M_{kL}\}
-\]
+```
 
 denote the RoBMA model ensemble, with prior model probabilities
-\(\pi_{k\ell}=p(M_{k\ell})\), marginal likelihoods
-\(m_{k\ell}(\mathcal{Y}_k)=p(\mathcal{Y}_k\mid M_{k\ell})\), and posterior
+$\pi_{k\ell}=p(M_{k\ell})$, marginal likelihoods
+$m_{k\ell}(\mathcal{Y}_k)=p(\mathcal{Y}_k\mid M_{k\ell})$, and posterior
 model probabilities
 
-\[
+```math
 p(M_{k\ell}\mid \mathcal{Y}_k)=
 \frac{\pi_{k\ell}m_{k\ell}(\mathcal{Y}_k)}
 {\sum_{h=1}^{L}\pi_{kh}m_{kh}(\mathcal{Y}_k)}.
-\]
+```
 
-For any model family \(\mathcal{A}_k\subset\mathcal{M}_k\), define
+For any model family $\mathcal{A}_k\subset\mathcal{M}_k$, define
 
-\[
+```math
 p(\mathcal{A}_k) = \sum_{M_{k\ell}\in\mathcal{A}_k} \pi_{k\ell},
 \qquad
 p(\mathcal{A}_k\mid \mathcal{Y}_k) =
 \sum_{M_{k\ell}\in\mathcal{A}_k} p(M_{k\ell}\mid \mathcal{Y}_k).
-\]
+```
 
 The corresponding model-family inclusion Bayes factor is
 
-\[
+```math
 BF_{\mathcal{A}_k:\overline{\mathcal{A}}_k}
 =
 \frac{
@@ -154,17 +155,17 @@ p(\mathcal{A}_k\mid \mathcal{Y}_k)/p(\overline{\mathcal{A}}_k\mid \mathcal{Y}_k)
 }{
 p(\mathcal{A}_k)/p(\overline{\mathcal{A}}_k)
 }.
-\]
+```
 
-The top-level RoBMA components are \(\mu\) (effect), \(\tau\)
-(heterogeneity), and \(\omega\) (publication-bias / small-study-effect
-adjustment). \(\omega+\) denotes models with an explicit modeled-bias
-component and \(\omega_0\) those without one; the dot indicates heterogeneity
+The top-level RoBMA components are $\mu$ (effect), $\tau$
+(heterogeneity), and $\omega$ (publication-bias / small-study-effect
+adjustment). $\omega+$ denotes models with an explicit modeled-bias
+component and $\omega_0$ those without one; the dot indicates heterogeneity
 is marginalized over.
 
 The two **rigor branches** are
 
-\[
+```math
 \mathcal{R}_k^{+}
 =
 \mathcal{M}_{k,\mu+\cdot\omega_0}
@@ -172,11 +173,11 @@ The two **rigor branches** are
 \mathcal{M}_{k,\mu+\tau_0\omega_0}
 \cup
 \mathcal{M}_{k,\mu+\tau+\omega_0},
-\]
+```
 
 and
 
-\[
+```math
 \mathcal{R}_k^{0}
 =
 \mathcal{M}_{k,\mu_0\cdot\omega_0}
@@ -184,84 +185,84 @@ and
 \mathcal{M}_{k,\mu_0\tau_0\omega_0}
 \cup
 \mathcal{M}_{k,\mu_0\tau+\omega_0}.
-\]
+```
 
 The branch-specific rigor Bayes factors are
 
-\[
+```math
 BF_k^{R,+}=BF_{\mathcal{R}_k^{+}:\overline{\mathcal{R}_k^{+}}},
 \qquad
 BF_k^{R,0}=BF_{\mathcal{R}_k^{0}:\overline{\mathcal{R}_k^{0}}}.
-\]
+```
 
 The **rigor direction** is the better-supported no-bias branch:
 
-\[
+```math
 d_k^R
 =
 \arg\max_{d\in\{+,0\}}
 \log_{10}BF_k^{R,d}.
-\]
+```
 
 The headline **rigor Bayes factor** is then
 
-\[
+```math
 \log_{10}BF_k^R
 =
 \log_{10}BF_k^{R,d_k^R}
 =
 \max\{\log_{10}BF_k^{R,+},\log_{10}BF_k^{R,0}\}.
-\]
+```
 
-Thus \(d_k^R=+\) indicates effect-supporting rigor and \(d_k^R=0\)
-null-supporting rigor. The reported \(BF_k^R\) is comparable across outcomes
+Thus $d_k^R=+$ indicates effect-supporting rigor and $d_k^R=0$
+null-supporting rigor. The reported $BF_k^R$ is comparable across outcomes
 as a rigor magnitude; the direction field records what kind of rigorous
 evidence the outcome supplies. In machine-readable sidecars the direction
-field stores `effect` for \(d_k^R=+\) and `no_effect` for \(d_k^R=0\).
+field stores `effect` for $d_k^R=+$ and `no_effect` for $d_k^R=0$.
 
 This differs from the marginal effect Bayes factor and the marginal no-bias
 Bayes factor. The usual marginal bias-adjustment Bayes factor is
 
-\[
+```math
 BF_k^\omega
 =
 BF_{\mathcal{M}_{k,\omega+}:\mathcal{M}_{k,\omega_0}},
-\]
+```
 
 so the marginal no-bias Bayes factor is
 
-\[
+```math
 BF_k^{\bar{\omega}}
 =
 BF_{\mathcal{M}_{k,\omega_0}:\mathcal{M}_{k,\omega+}}
 =(BF_k^\omega)^{-1},
 \qquad
 \log_{10}BF_k^{\bar{\omega}}=-\log_{10}BF_k^\omega.
-\]
+```
 
-Neither \(BF_k^{R,+}\) nor \(BF_k^{R,0}\) is generally a product of marginal
+Neither $BF_k^{R,+}$ nor $BF_k^{R,0}$ is generally a product of marginal
 effect/null and no-bias Bayes factors; exact branch-specific rigor requires
 joint model-family prior/posterior mass from the individual model summaries.
-\(BF_k^{R,+}\) and \(BF_k^{R,0}\) are ordinary model-family Bayes factors for
-pre-specified families; the selected \(BF_k^R\) is the larger of those two,
+$BF_k^{R,+}$ and $BF_k^{R,0}$ are ordinary model-family Bayes factors for
+pre-specified families; the selected $BF_k^R$ is the larger of those two,
 reported with its direction. It is **not** the Bayes factor for the union
-\(\mathcal{R}_k^+\cup\mathcal{R}_k^0\), which collapses to the no-bias family
+$\mathcal{R}_k^+\cup\mathcal{R}_k^0$, which collapses to the no-bias family
 and loses the effect/null resolution.
 
-The aggregation layer is defined over **strata**. Let \(S\) be a scheme and
-\(S(k)\) the stratum label of outcome \(k\); write
-\(\mathcal{K}_{s,S}=\{k:S(k)=s\}\), \(n_{s,S}=|\mathcal{K}_{s,S}|\). The
+The aggregation layer is defined over **strata**. Let $S$ be a scheme and
+$S(k)$ the stratum label of outcome $k$; write
+$\mathcal{K}_{s,S}=\{k:S(k)=s\}$, $n_{s,S}=|\mathcal{K}_{s,S}|$. The
 stratum-level finite-corpus rigor summary is the mean log rigor Bayes factor
 
-\[
+```math
 \Theta_{s,S}^R =
 \frac{1}{n_{s,S}}\sum_{k\in\mathcal{K}_{s,S}}\log_{10} BF_k^R,
-\]
+```
 
-with typical rigor Bayes factor \(10^{\Theta_{s,S}^R}\), plus direction
+with typical rigor Bayes factor $10^{\Theta_{s,S}^R}$, plus direction
 composition
 
-\[
+```math
 \pi_{s,S}^{R,+}
 =
 \frac{1}{n_{s,S}}\sum_{k\in\mathcal{K}_{s,S}}\mathbf{1}(d_k^R=+),
@@ -269,23 +270,23 @@ composition
 \pi_{s,S}^{R,0}
 =
 \frac{1}{n_{s,S}}\sum_{k\in\mathcal{K}_{s,S}}\mathbf{1}(d_k^R=0).
-\]
+```
 
 Because one source meta-analysis can contribute many reconstructed outcomes,
 the reporting layer also produces **article-balanced** summaries
 
-\[
+```math
 \Theta_{s,S}^{R,w}
 =
 \frac{\sum_{k\in \mathcal{K}_{s,S}} w_k\log_{10}BF_k^R}
 {\sum_{k\in \mathcal{K}_{s,S}} w_k},
-\]
+```
 
-with default weight \(w_k=1/m_{a(k),s,S}\), where \(a(k)\) identifies the
-source article and \(m_{a(k),s,S}\) is the number of outcomes it contributes
+with default weight $w_k=1/m_{a(k),s,S}$, where $a(k)$ identifies the
+source article and $m_{a(k),s,S}$ is the number of outcomes it contributes
 within the stratum. Outcome-weighted and article-balanced summaries answer
 different audit questions and are reported together when outcome multiplicity
-is uneven. The same outcome-level \(BF_k^R\) / direction values support
+is uneven. The same outcome-level $BF_k^R$ / direction values support
 multiple schemes (`journal`, `field_year`, …) without refitting.
 
 ### Component vs rigor Bayes factors
@@ -412,8 +413,9 @@ lazily inside those entry points.
 auto-installed). The exact verified versions (R, JAGS, Rtools, packages) are
 in [`docs/environment.md`](docs/environment.md) — the current reproducibility
 record. `renv` is **intentionally inactive** during active development (plain
-user library); the stale RoBMA-3.6-era `renv.lock` and renv infra are
-archived under `archive/renv_inactive_<date>/`, not at the repo root.
+user library); the stale RoBMA-3.6-era `renv.lock` and renv infra were
+retired during the public-cleanup pass and are not part of the active
+public tree (commit history preserves them; see `docs/environment.md`).
 
 ```r
 source("scripts/00_utils.R")
@@ -470,10 +472,19 @@ companions are formal exclusion-sensitivity variants. The complete
 input-side specification (including the `_excl` policy) is in
 [`data_dictionary.md`](data_dictionary.md).
 
+Each empirical `data/<Stratum>/<source_article>/` directory is linked to
+manuscript citation metadata via
+[`data/source_article_registry.csv`](data/source_article_registry.csv) and
+[`references/`](references/) (filtered nutrition source articles + a
+snapshot of the manuscript bibliography). **No full-text article PDFs are
+redistributed** — see [`references/README.md`](references/README.md).
+
 ## Outputs
 
-The active run writes only v4-compatible outputs under `output/` (legacy
-RoBMA 3.6 outputs are under `archive/RoBMA_3_6/`). In brief:
+The active run writes only v4-compatible outputs under `output/`. (The
+legacy RoBMA 3.6 output snapshot is **ignored / local-only** under
+`archive/RoBMA_3_6/` per `.gitignore`; it is not part of the public
+tree and not required for any active reproduction step.) In brief:
 
 - **Per dataset** (`20`/`40`): `fit_RE4_*.rds`, `fit_RoBMA4_*.rds`,
   `zplot_*_*.rds`, and `audit/` model-summary + validation CSVs.
@@ -588,9 +599,9 @@ lives in its own sub-project (`simulation/`).
   [`docs/environment.md`](docs/environment.md) (numeric reproducibility is
   defined by RoBMA 4.0.0 + BayesTools 0.3.0 + JAGS 4.3.1 + the fixed seed).
   `renv` is intentionally inactive during active development; the stale
-  `renv.lock` is archived under `archive/renv_inactive_<date>/` and is not
-  the v4 reproduction path (it may be reintroduced only at release freeze
-  after explicit decision and restore testing).
+  RoBMA-3.6 `renv.lock` was retired from the public tree during cleanup
+  and is not the v4 reproduction path (renv may be reintroduced only at
+  release freeze after explicit decision and restore testing).
 - **Resume safety.** `40_batch_fit.R` does not skip a dataset merely because
   an `.rds` file exists. Resume is configuration-, version-, and
   estimand-aware via `config_hash`, package versions, schema/estimand
