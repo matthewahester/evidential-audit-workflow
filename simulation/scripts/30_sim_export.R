@@ -46,8 +46,15 @@ if (!exists(".robma_sim_utils_loaded", inherits = TRUE) ||
 #'   (default `.SIM_DEFAULT_VINTAGE`); the second path component becomes
 #'   `sim<vintage>`.
 #' @param overwrite   If FALSE (default), an existing analysis-ready CSV
-#'   is left in place and the manifest row is marked `status = "skipped"`.
-#'   Set TRUE to force regeneration.
+#'   is left in place. Latent files are handled independently of the
+#'   observed CSV: a missing latent file is filled in even when the
+#'   observed CSV exists, provided the freshly generated observed table
+#'   matches the on-disk observed CSV on `study_id`/`g`/`se_g` (within
+#'   `tolerance`). This closes the historical observed-existing /
+#'   latent-missing gap left by earlier exporter versions.
+#' @param tolerance  Numeric tolerance for the observed-vs-on-disk
+#'   match check used when filling a missing latent against an existing
+#'   observed CSV (default 1e-10). `study_id` is compared exactly.
 #'
 #' @return A 1-row data frame with manifest fields:
 #'   cell, cell_slug, stratum, synthetic_stratum, legacy_cell_code,
@@ -57,14 +64,31 @@ if (!exists(".robma_sim_utils_loaded", inherits = TRUE) ||
 #'   k, k_bucket, mu_true, tau_true, selection,
 #'   w_sig01, w_sig05, w_ns, smallstudy_alpha,
 #'   n_per_arm_median, n_drawn, n_accepted, seed,
-#'   status, generated_at.
+#'   observed_status, latent_status, status, generated_at.
 #'   `csv_path` / `latent_path` are repo-relative. `simulation_run_id` is
 #'   added by `sim_run_design()` (one id per run).
+#'
+#'   `observed_status` is "written" | "skipped" (observed CSV side only).
+#'   `latent_status`   is "written" | "skipped" | "filled" | "mismatch"
+#'                     | "error":
+#'     * "written"  -- latent written as part of a fresh write
+#'     * "skipped"  -- latent already present and not regenerated
+#'     * "filled"   -- observed existed, latent was missing, and the
+#'                     generated observed matched the on-disk CSV, so
+#'                     the latent was written without touching observed
+#'     * "mismatch" -- observed existed, latent was missing, but the
+#'                     generated observed did NOT match the on-disk CSV;
+#'                     latent is NOT written (warns)
+#'     * "error"    -- the on-disk observed CSV could not be read or
+#'                     was malformed; latent is NOT written (warns)
+#'   `status` is retained for backward compatibility: it mirrors
+#'   `observed_status` ("written" or "skipped").
 sim_export_dataset <- function(dataset_obj,
                                 data_root   = "data",
                                 latent_root = "simulation/latent",
                                 vintage     = .SIM_DEFAULT_VINTAGE,
-                                overwrite   = FALSE) {
+                                overwrite   = FALSE,
+                                tolerance   = 1e-10) {
 
   meta     <- dataset_obj$meta
   observed <- dataset_obj$observed
@@ -86,15 +110,80 @@ sim_export_dataset <- function(dataset_obj,
   latent_dir  <- file.path(latent_root, stratum_dir, source_dir)
   latent_path <- file.path(latent_dir, paste0(stem, "_latent.csv"))
 
-  status <- "written"
-  if (file.exists(csv_path) && !overwrite) {
-    status <- "skipped"
-  } else {
+  observed_exists <- file.exists(csv_path)
+  latent_exists   <- file.exists(latent_path)
+
+  observed_status <- NA_character_
+  latent_status   <- NA_character_
+
+  if (!observed_exists || isTRUE(overwrite)) {
+    # Fresh write of both sides.
     if (!dir.exists(csv_dir))    dir.create(csv_dir,    recursive = TRUE)
     if (!dir.exists(latent_dir)) dir.create(latent_dir, recursive = TRUE)
     utils::write.csv(observed, csv_path,    row.names = FALSE)
     utils::write.csv(latent,   latent_path, row.names = FALSE)
+    observed_status <- "written"
+    latent_status   <- "written"
+  } else {
+    # Observed already on disk and overwrite = FALSE: do not touch the
+    # observed CSV. Handle latent independently.
+    observed_status <- "skipped"
+    if (latent_exists) {
+      latent_status <- "skipped"
+    } else {
+      # Fill the missing latent ONLY if the freshly generated observed
+      # table matches the on-disk observed CSV; never reconstruct latent
+      # from observed alone.
+      on_disk <- tryCatch(
+        utils::read.csv(csv_path, stringsAsFactors = FALSE,
+                        check.names = FALSE),
+        error = function(e) NULL)
+      if (is.null(on_disk)) {
+        latent_status <- "error"
+        warning(sprintf(
+          "sim_export_dataset: latent missing and on-disk observed ",
+          "CSV unreadable: %s", csv_path), call. = FALSE)
+      } else {
+        want_cols <- c("study_id", "g", "se_g")
+        if (!all(want_cols %in% names(on_disk)) ||
+            nrow(on_disk) != nrow(observed)) {
+          latent_status <- "error"
+          warning(sprintf(
+            "sim_export_dataset: latent missing and on-disk observed ",
+            "CSV shape mismatch (path=%s, ncol_match=%s, nrow_disk=%d, ",
+            "nrow_gen=%d).",
+            csv_path,
+            all(want_cols %in% names(on_disk)),
+            nrow(on_disk), nrow(observed)), call. = FALSE)
+        } else {
+          id_ok <- isTRUE(all(as.integer(on_disk$study_id) ==
+                                as.integer(observed$study_id)))
+          g_ok  <- isTRUE(all(abs(as.numeric(on_disk$g) -
+                                    as.numeric(observed$g)) <= tolerance))
+          se_ok <- isTRUE(all(abs(as.numeric(on_disk$se_g) -
+                                    as.numeric(observed$se_g)) <= tolerance))
+          if (id_ok && g_ok && se_ok) {
+            if (!dir.exists(latent_dir))
+              dir.create(latent_dir, recursive = TRUE)
+            utils::write.csv(latent, latent_path, row.names = FALSE)
+            latent_status <- "filled"
+          } else {
+            latent_status <- "mismatch"
+            warning(sprintf(
+              "sim_export_dataset: latent missing and generated observed ",
+              "does not match on-disk CSV (path=%s, study_id_ok=%s, ",
+              "g_ok=%s, se_g_ok=%s). Latent NOT written.",
+              csv_path, id_ok, g_ok, se_ok), call. = FALSE)
+          }
+        }
+      }
+    }
   }
+
+  # Back-compat: `status` mirrors observed_status so existing manifest
+  # summaries (sum(status == "written") / sum(status == "skipped")) keep
+  # working. The new latent-side outcome lives in `latent_status`.
+  status <- observed_status
 
   data.frame(
     cell               = meta$cell,
@@ -134,6 +223,8 @@ sim_export_dataset <- function(dataset_obj,
     n_drawn            = meta$n_drawn,
     n_accepted         = meta$n_accepted         %||% NA_integer_,
     seed               = meta$seed,
+    observed_status    = observed_status,
+    latent_status      = latent_status,
     status             = status,
     generated_at       = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"),
     stringsAsFactors   = FALSE

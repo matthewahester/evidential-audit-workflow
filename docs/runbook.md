@@ -35,8 +35,11 @@ encode the primitives; you rarely need to refit empirically.
 
 ```r
 source("simulation/scripts/40_sim_run.R")
-sim_generate_library(n_reps = 150, dry_run = TRUE)   # 🟢 plan only
-sim_generate_library(n_reps = 150)                   # 🟡 36 cells × 150 reps
+sim_generate_library(n_reps = 500, dry_run = TRUE)   # 🟢 plan only
+sim_generate_library(n_reps = 500)                   # 🟡 36 cells × 500 reps
+# Publication primary is n_reps = 500 per cell (18,000-outcome library;
+# fit_progress_overall.csv reports library_status = complete_clean).
+# n_reps = 150 was the earlier dev/internal tier.
 # n_reps is the ONLY place the replicate count is set; idempotent under
 # overwrite=FALSE (existing reps preserved, missing reps added).
 ```
@@ -101,8 +104,13 @@ build_estimand_tables(root = "output_sim_v30",
                       write_tex = FALSE)
 ```
 
-Only after Pass 5F. Writes `output_sim_v30/overview/*.csv`. The
-empirical analogue uses `root="output"`, `output_dir="output/overview"`.
+As of 2026-05 this rebuild is folded into Phase H by default
+(`sim_run_synthetic_resampling(..., refresh_registry = TRUE)`); run
+Phase E standalone only when you want the registry refresh without
+the resampling subroutines (e.g. to feed another consumer), or when
+calling the lower-level 65 runners directly. Writes
+`output_sim_v30/overview/*.csv`. The empirical analogue uses
+`root="output"`, `output_dir="output/overview"`.
 
 ## F. Final cell diagnostics 🟡 WRITES (diagnostic CSVs)
 
@@ -156,6 +164,9 @@ source("simulation/scripts/65_synthetic_resampling.R")
 # stratum sizes + Q3 empirical-weighted synthetic size curve in one
 # call. Default Q3 weighting is empirical-Bayes support-masked
 # (smoothing = "eb_corpus", kappa = 4, support = "occupied").
+# Also rebuilds the overview registry by default (refresh_registry =
+# TRUE) so Phase E does not have to be run separately. Pass
+# refresh_registry = FALSE to skip when the registry is known fresh.
 # B tiers: 500 dev / 5000 internal high-precision / 15000 final.
 sim_run_synthetic_resampling(
   B         = 500,
@@ -204,21 +215,28 @@ row with `dev_partial = TRUE` (filenames stay the same).
 
 ```r
 source("simulation/scripts/70_empirical_synthetic_agreement.R")
-# Default Q3 settings match the recommended primary path:
-# smoothing = "eb_corpus", kappa = 4, support = "occupied",
-# pool_key = "target". B tiers: 500 dev / 5000 / 15000 final.
+# Default path: B / pool_key / smoothing / kappa / support all default
+# to NULL and are auto-adopted from the loaded Q3 CSVs. A [sa] message
+# names what was adopted; every output row stamps `loaded_B_stratum`
+# / `loaded_pool_key` / etc. for the audit trail. Pass any setting
+# explicitly to assert it -- the stale-config guard then fires on
+# mismatch for that field only.
+sim_run_empirical_synthetic_agreement()
+
+# Final / publication run -- assert every Q3 setting and refuse any
+# implicit recompute. The guard fires on mismatch:
 sim_run_empirical_synthetic_agreement(
-  B         = 500,
+  B         = 15000,
   pool_key  = "target",
   smoothing = "eb_corpus",
   kappa     = 4,
   support   = "occupied",
-  run_composition_if_missing = FALSE,   # final runs: no implicit recompute
+  run_composition_if_missing = FALSE,   # no silent Q3 recompute
   allow_config_mismatch      = FALSE)   # stale-config guard
 
 # If the Q3 empirical-weighted synthetic sampling was just run in this
 # session, hand its return value in:
-# comp <- sim_run_empirical_weighted_synthetic(B = 500, write = FALSE)
+# comp <- sim_run_empirical_weighted_synthetic(B = 15000, write = FALSE)
 # sim_run_empirical_synthetic_agreement(composition = comp)
 ```
 
@@ -226,15 +244,17 @@ Resolves the Q3 input in priority order: (1) in-memory
 `composition` argument; (2) existing CSVs under `composition_dir`
 (default `simulation/results/empirical_weighted_synthetic/`); (3)
 fresh Q3 sampling run (when `run_composition_if_missing = TRUE`, the
-default). For final runs pass `run_composition_if_missing = FALSE`
-to make missing CSVs a hard error and `allow_config_mismatch = FALSE`
-(the default) to keep the Q3 **stale-config guard** active — it
-compares the requested `B` / `pool_key` / `smoothing` / `kappa` /
-`support_scope` against what was actually written into the loaded
-Q3 CSVs (loaded `B` is inferred from
-`length(unique(composition_id))`) and stops on any mismatch. The
-previous `allow_B_mismatch` argument is retained as a deprecated
-alias for one cycle. Writes
+default). `B` / `pool_key` / `smoothing` / `kappa` / `support`
+default to `NULL`; whichever ones the caller leaves NULL are
+auto-adopted from the loaded Q3 CSVs (loaded `B` is inferred from
+`length(unique(composition_id))`) and a `[sa]` message names what
+was adopted. The Q3 **stale-config guard** fires only for fields the
+caller passed explicitly — assert any setting that must hold to
+catch mismatches; leave it NULL to inherit what's on disk. For final
+runs pass `run_composition_if_missing = FALSE` (refuses to silently
+recompute against partial fitted-library state) and assert every
+Q3 setting explicitly. The previous `allow_B_mismatch` argument is
+retained as a deprecated alias for one cycle. Writes
 `simulation/results/agreement/empirical_vs_synthetic_{stratum,corpus}_agreement.csv`
 plus `empirical_synthetic_agreement_report.md`.
 
@@ -263,19 +283,27 @@ terminology pass; the Q3 wrapper was renamed
 `sim_run_composition_visuals()` and `cv_run_composition_visuals()`
 remain as deprecation aliases that emit a soft warning and forward.
 
-## K. Scaling up the library (e.g. 25 → 150 reps/cell) 🔴 HEAVY MCMC
+## K. Scaling up the library (publication target: 500 reps/cell) 🔴 HEAVY MCMC
 
-1. **Generate** 🟡 — `sim_generate_library(n_reps = 150)`. `overwrite =
+The publication target is `n_reps = 500` per cell (18,000-outcome library);
+the library is already complete on disk under that target. The same
+procedure scales any incremental change in `n_reps`.
+
+1. **Generate** 🟡 — `sim_generate_library(n_reps = 500)`. `overwrite =
    FALSE` is the default: existing reps are skipped/preserved, missing
    reps are written.
 2. **Fit** 🔴 — `sim_fit_library()` (see C). Per-stratum loop,
    resume-safe, `SIM_FIT_WORKERS` concurrency. **Never** an all-strata
    `batch_fit`.
 3. **Monitor / acceptance** 🟢 — D, with the larger library.
-4. **Overview rebuild** 🟡 — E against `output_sim_v30`.
-5. **Cell diagnostics** 🟡 — F.
-6. **Composition / agreement / visuals** 🟡 — H → I → J (the gate uses
-   the on-disk generated library size).
+4. **Cell diagnostics** 🟡 — F.
+5. **Composition / agreement / visuals** 🟡 — H → I → J (the gate uses
+   the on-disk generated library size). H's
+   `sim_run_synthetic_resampling()` rebuilds the overview registry
+   automatically (default `refresh_registry = TRUE`), so the previous
+   standalone Phase E step is no longer required here. Run E explicitly
+   only when invoking the lower-level 65 runners or refreshing the
+   registry without resampling.
 
 Operating-characteristic claims require enough fitted replicates per
 cell to give acceptable Monte Carlo SE on the metric of interest; the

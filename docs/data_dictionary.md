@@ -87,7 +87,7 @@ analysis_id            = <corpus_id>__<stratum>__<source_article>__<outcome>__<v
 `corpus_id = sim_library_v30`, `scheme = simulation_cell`). A
 cell-bearing stem must **not** be used — it produced a doubled
 `dataset_id`, which is why the stem is compact (see
-`simulation/README_simulation_v3_1.md`).
+`simulation/README.md`).
 
 Simulation-specific **latent / truth / manifest** files must **not** live in
 `data/` — the audit loader must only ever see analysis-ready study-level

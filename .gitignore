@@ -71,15 +71,25 @@
 
 
 # ---- Active generated simulation output roots -------------------------------
-# Heavy generated artifacts: 21,600+ .rds fits, 5 GB+ of audit CSVs, and
-# multi-GB raw resampling/sampling draws. The lean v4 sim sidecars,
-# overview tables, and small diagnostic CSVs are all regenerable from the
-# committed source + data + design CSV; force-add specific small files
-# (e.g. a fit_progress_overall.csv snapshot or one cell_diagnostics_*.csv)
-# only if the manuscript pins them.
+# Release decision (locked at v1.0.0): the public GitHub release ships
+# simulation source, design grid, and runbooks but NOT the generated
+# synthetic datasets, fitted simulation outputs, or simulation result trees.
+# All are regenerable from the included scripts + design CSV + recorded
+# R / JAGS environment. See docs/output_commit_policy.md for the full rule.
 output_sim_v30/
 simulation/results/
 simulation/results_archive*/
+
+# Generated synthetic input datasets (~18,000 CSVs at n_reps = 500) and
+# their latent / manifest provenance. Regenerable end-to-end from
+# simulation/config/design_v3_full36.csv + the fixed generation seed in
+# simulation/scripts/20_sim_generate.R via sim_generate_library(n_reps).
+# Ignored as a release-policy guard so a casual `git add .` from the repo
+# root cannot accidentally stage them. To regenerate locally: see
+# simulation/README.md and docs/runbook.md (Phase B).
+data/sim_*/
+simulation/latent/
+simulation/manifests/
 
 # Heavy raw-draws CSVs that exceed GitHub's 100-MB-per-file limit. Belt-and-
 # braces in case simulation/results/ ever becomes selectively tracked.

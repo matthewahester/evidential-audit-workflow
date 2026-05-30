@@ -281,8 +281,24 @@ sim_run_design <- function(design_path           = .SIM_DEFAULT_DESIGN_PATH,
   if (verbose) {
     n_written <- sum(manifest$status == "written")
     n_skipped <- sum(manifest$status == "skipped")
-    message(sprintf("[sim] done: %d written, %d skipped. Manifest: %s",
-                    n_written, n_skipped, manifest_path))
+    lat <- if ("latent_status" %in% names(manifest))
+      manifest$latent_status else rep(NA_character_, nrow(manifest))
+    n_lat_written  <- sum(lat == "written",  na.rm = TRUE)
+    n_lat_skipped  <- sum(lat == "skipped",  na.rm = TRUE)
+    n_lat_filled   <- sum(lat == "filled",   na.rm = TRUE)
+    n_lat_mismatch <- sum(lat == "mismatch", na.rm = TRUE)
+    n_lat_error    <- sum(lat == "error",    na.rm = TRUE)
+    message(sprintf(paste0(
+      "[sim] done: observed (%d written, %d skipped); ",
+      "latent (%d written, %d skipped, %d filled, %d mismatch, ",
+      "%d error). Manifest: %s"),
+      n_written, n_skipped,
+      n_lat_written, n_lat_skipped, n_lat_filled,
+      n_lat_mismatch, n_lat_error, manifest_path))
+    if (n_lat_mismatch > 0L || n_lat_error > 0L)
+      message("[sim] WARNING: ", n_lat_mismatch + n_lat_error,
+              " row(s) flagged on the latent side. Inspect the ",
+              "manifest's latent_status column.")
   }
 
   invisible(manifest)
@@ -681,4 +697,347 @@ sim_fit_library <- function(data_root   = "data",
             "are skipped.")
   }
   invisible(list(status = status, final = final))
+}
+
+# ----------------------------------------------------------------------
+# Latent-library audit + safe deterministic-repair helpers.
+#
+# `simulation/latent/` is provenance / DGM-truth only: core Q1/Q2/Q3
+# analyses (cell diagnostics, empirical resampling, empirical-weighted
+# synthetic sampling, agreement) read the audit-ready CSVs under
+# `data/sim_*/sim<vintage>/`, the fitted sidecars under
+# `output_sim_v30/`, the overview registry under
+# `output_sim_v30/overview/outcome_registry.csv`, and the analysis
+# result CSVs under `simulation/results/`. No active analysis opens any
+# `_latent.csv` file; `sim_inventory_library()` counts latent files for
+# the `n_latent` column only.
+#
+# Idempotency note (root cause of any 125-vs-150 mismatch):
+# `sim_export_dataset()` keys the skip-vs-write decision on the
+# observed CSV only:
+#
+#     if (file.exists(csv_path) && !overwrite) { status <- "skipped" }
+#     else { write observed; write latent }
+#
+# So when the observed CSV already exists, the latent file is NOT
+# regenerated on a re-run with `overwrite = FALSE`, even when the
+# latent file is missing. A 125 latent / 150 observed mismatch
+# therefore typically reflects interrupted generation, prior runs
+# under an earlier code path, manual file movement, or a partial
+# repair where observed CSVs exist but latent files do not.
+# ----------------------------------------------------------------------
+
+#' Audit the latent library against the audit-ready data tree.
+#'
+#' Compares `data/sim_*/sim<vintage>/repNNNN.csv` against
+#' `simulation/latent/sim_*/sim<vintage>/repNNNN_latent.csv` for every
+#' stratum in the design. Reports per-cell counts only; never edits a
+#' file. Useful before scaling the synthetic library so a latent
+#' deficit does not silently propagate (it does not affect fitting or
+#' resampling, but it is the cleanest provenance signal that something
+#' interrupted earlier generation).
+#'
+#' @param design Optional design data.frame (default: `sim_load_design()`).
+#' @param data_root,latent_root Tree roots (defaults match the rest of
+#'   the simulation pipeline).
+#' @param vintage Source-article vintage tag (default
+#'   `.SIM_DEFAULT_VINTAGE`).
+#' @param output_root Optional simulation output root; when supplied,
+#'   the report also includes `n_fit_sidecars` per stratum from
+#'   `sim_inventory_library()`.
+#' @param write_path Optional path to write the per-stratum CSV to (the
+#'   only file this function writes, and only when supplied).
+#' @param verbose Print a summary banner.
+#'
+#' @return invisible list(per_cell, overall, write_path).
+#'   per_cell: data.frame with one row per design stratum, columns
+#'     cell_slug, stratum, n_data_csv, n_latent_csv, n_missing_latent,
+#'     n_extra_latent, n_fit_sidecars (NA when output_root not given).
+#'   overall: named list with totals + a small flag set
+#'     (any_missing, any_extra).
+sim_audit_latent_library <- function(
+    design       = NULL,
+    data_root    = "data",
+    latent_root  = "simulation/latent",
+    vintage      = .SIM_DEFAULT_VINTAGE,
+    output_root  = NULL,
+    write_path   = NULL,
+    verbose      = TRUE) {
+  if (is.null(design)) design <- sim_load_design()
+  src  <- sim_source_tag(vintage)
+  reps_in <- function(dir_, pat) {
+    if (!dir.exists(dir_)) return(character(0L))
+    f <- list.files(dir_, pattern = pat)
+    sub(pat, "\\1", f)
+  }
+  data_pat   <- "^(rep[0-9]{4})\\.csv$"
+  latent_pat <- "^(rep[0-9]{4})_latent\\.csv$"
+
+  per <- lapply(seq_len(nrow(design)), function(i) {
+    strat <- design$stratum[i]
+    cdir  <- file.path(data_root,   strat, src)
+    ldir  <- file.path(latent_root, strat, src)
+    data_reps   <- reps_in(cdir, data_pat)
+    latent_reps <- reps_in(ldir, latent_pat)
+    miss <- setdiff(data_reps,   latent_reps)
+    xtra <- setdiff(latent_reps, data_reps)
+    data.frame(
+      cell_slug         = design$cell_slug[i],
+      stratum           = strat,
+      n_data_csv        = length(data_reps),
+      n_latent_csv      = length(latent_reps),
+      n_missing_latent  = length(miss),
+      n_extra_latent    = length(xtra),
+      stringsAsFactors  = FALSE)
+  })
+  per_df <- do.call(rbind, per)
+
+  if (!is.null(output_root)) {
+    inv <- sim_inventory_library(data_root   = data_root,
+                                 latent_root = latent_root,
+                                 output_root = output_root,
+                                 vintage     = vintage,
+                                 design      = design)
+    per_df$n_fit_sidecars <- as.integer(
+      inv$per_cell$n_fit[match(per_df$stratum, inv$per_cell$stratum)])
+  } else {
+    per_df$n_fit_sidecars <- NA_integer_
+  }
+
+  overall <- list(
+    n_strata          = nrow(per_df),
+    n_data_csv_total  = as.integer(sum(per_df$n_data_csv)),
+    n_latent_total    = as.integer(sum(per_df$n_latent_csv)),
+    n_missing_total   = as.integer(sum(per_df$n_missing_latent)),
+    n_extra_total     = as.integer(sum(per_df$n_extra_latent)),
+    any_missing       = any(per_df$n_missing_latent > 0L),
+    any_extra         = any(per_df$n_extra_latent   > 0L),
+    vintage           = vintage,
+    data_root         = data_root,
+    latent_root       = latent_root,
+    output_root       = output_root %||% NA_character_)
+
+  if (!is.null(write_path)) {
+    wd <- dirname(write_path)
+    if (!dir.exists(wd)) dir.create(wd, recursive = TRUE)
+    utils::write.csv(per_df, write_path, row.names = FALSE)
+    if (isTRUE(verbose))
+      message(sprintf("[latent-audit] wrote %s", write_path))
+  }
+
+  if (isTRUE(verbose)) {
+    message(sprintf(paste0(
+      "[latent-audit] strata=%d  data CSVs=%d  latent CSVs=%d  ",
+      "missing latent=%d  extra latent=%d"),
+      overall$n_strata, overall$n_data_csv_total,
+      overall$n_latent_total, overall$n_missing_total,
+      overall$n_extra_total))
+    if (overall$any_missing) {
+      bad <- per_df[per_df$n_missing_latent > 0L, , drop = FALSE]
+      message(sprintf(
+        "[latent-audit] %d cell(s) with missing latent (first 5: %s).",
+        nrow(bad),
+        paste(utils::head(bad$stratum, 5L), collapse = ", ")))
+      message("[latent-audit] safe repair: ",
+              "sim_repair_missing_latent(...) (dry-run by default).")
+    }
+  }
+
+  invisible(list(per_cell = per_df, overall = overall,
+                 write_path = write_path))
+}
+
+#' Safely repair missing latent files by deterministic regeneration.
+#'
+#' For every (stratum, rep_id) where an observed CSV exists but its
+#' `_latent.csv` is missing, regenerates the dataset via
+#' `sim_generate_dataset(cell_row, rep_id, base_seed)` (deterministic
+#' given those three inputs), compares the regenerated observed table
+#' against the existing audit-ready CSV on (`study_id`, `g`, `se_g`),
+#' and writes the latent file ONLY when the comparison matches.
+#'
+#' Safety contract:
+#'   - Default `repair = FALSE` is dry-run / report-only.
+#'   - NEVER reconstructs latent from observed data alone (`theta_true`,
+#'     `g_pre_bias`, `n_per_arm`, candidate-selection columns are not
+#'     recoverable from the observed CSV).
+#'   - NEVER overwrites the existing observed CSV.
+#'   - When the regenerated observed table does not match the existing
+#'     observed CSV (e.g. the original was produced under a different
+#'     code revision or a different `base_seed`), records the mismatch
+#'     in the report and writes NOTHING.
+#'
+#' @param design Optional design data.frame.
+#' @param data_root,latent_root,vintage,base_seed As elsewhere.
+#' @param repair If TRUE, write missing latent files where the
+#'   regenerated observed matches the existing CSV. Default FALSE.
+#' @param strata Optional character vector to limit the scan to a
+#'   subset of strata. Default scans every stratum in the design.
+#' @param max_per_stratum Optional cap on the number of missing-latent
+#'   reps inspected per stratum (default `Inf` = all).
+#' @param tolerance Numeric tolerance for comparing `g` / `se_g`
+#'   between regenerated and existing observed CSVs (default 1e-10;
+#'   write.csv -> read.csv round-trip is exact to machine precision but
+#'   the tolerance leaves headroom for any future writer change).
+#' @param write_report Optional path to write the per-rep status CSV.
+#' @param verbose Print a summary banner.
+#'
+#' @return invisible list(per_rep, summary, write_report).
+#'   per_rep: data.frame columns
+#'     stratum, cell_slug, rep_id, exists_data_csv, exists_latent_csv,
+#'     regenerated, match_existing, wrote_latent, mismatch_reason.
+sim_repair_missing_latent <- function(
+    design          = NULL,
+    data_root       = "data",
+    latent_root     = "simulation/latent",
+    vintage         = .SIM_DEFAULT_VINTAGE,
+    base_seed       = .SIM_DEFAULT_BASE_SEED,
+    repair          = FALSE,
+    strata          = NULL,
+    max_per_stratum = Inf,
+    tolerance       = 1e-10,
+    write_report    = NULL,
+    verbose         = TRUE) {
+  if (is.null(design)) design <- sim_load_design()
+  if (!is.null(strata)) {
+    strata <- as.character(strata)
+    keep <- design$stratum %in% strata
+    if (!any(keep))
+      stop("sim_repair_missing_latent: none of the requested strata ",
+           "are in the design.")
+    design <- design[keep, , drop = FALSE]
+  }
+  src <- sim_source_tag(vintage)
+  data_pat   <- "^rep([0-9]{4})\\.csv$"
+  latent_pat <- "^rep([0-9]{4})_latent\\.csv$"
+
+  rows <- list()
+  for (i in seq_len(nrow(design))) {
+    strat <- design$stratum[i]
+    cell  <- design$cell_slug[i]
+    cdir  <- file.path(data_root,   strat, src)
+    ldir  <- file.path(latent_root, strat, src)
+    if (!dir.exists(cdir)) next
+    data_reps <- list.files(cdir, pattern = data_pat)
+    if (!length(data_reps)) next
+    data_ids <- as.integer(sub(data_pat, "\\1", data_reps))
+    have_lat <- if (dir.exists(ldir))
+      as.integer(sub(latent_pat, "\\1",
+                     list.files(ldir, pattern = latent_pat)))
+    else integer(0L)
+    missing_ids <- setdiff(data_ids, have_lat)
+    if (!length(missing_ids)) next
+    if (is.finite(max_per_stratum))
+      missing_ids <- utils::head(sort(missing_ids),
+                                  as.integer(max_per_stratum))
+
+    cell_row <- design[i, , drop = FALSE]
+    for (rid in missing_ids) {
+      stem        <- sim_make_stem(cell, rid)
+      csv_path    <- file.path(cdir, paste0(stem, ".csv"))
+      latent_path <- file.path(ldir, paste0(stem, "_latent.csv"))
+      regen_ok <- FALSE; match_ok <- FALSE; wrote <- FALSE
+      reason   <- ""
+      ds <- tryCatch(
+        sim_generate_dataset(cell_row, rid, base_seed = base_seed,
+                              keep_candidates = FALSE),
+        error = function(e) { reason <<- paste0("regen_error: ",
+                                                conditionMessage(e));
+                              NULL })
+      if (!is.null(ds)) {
+        regen_ok <- TRUE
+        on_disk <- tryCatch(
+          utils::read.csv(csv_path, stringsAsFactors = FALSE,
+                          check.names = FALSE),
+          error = function(e) { reason <<- paste0("read_error: ",
+                                                  conditionMessage(e));
+                                NULL })
+        if (!is.null(on_disk)) {
+          want_cols <- c("study_id", "g", "se_g")
+          if (!all(want_cols %in% names(on_disk))) {
+            reason <- paste0("observed CSV missing column(s): ",
+                              paste(setdiff(want_cols,
+                                            names(on_disk)),
+                                    collapse = ","))
+          } else if (nrow(on_disk) != nrow(ds$observed)) {
+            reason <- sprintf("nrow mismatch (existing=%d, regen=%d)",
+                               nrow(on_disk), nrow(ds$observed))
+          } else {
+            id_ok <- isTRUE(all(as.integer(on_disk$study_id) ==
+                                  as.integer(ds$observed$study_id)))
+            g_ok  <- isTRUE(all(abs(as.numeric(on_disk$g) -
+                                      as.numeric(ds$observed$g)) <=
+                                  tolerance))
+            se_ok <- isTRUE(all(abs(as.numeric(on_disk$se_g) -
+                                      as.numeric(ds$observed$se_g)) <=
+                                  tolerance))
+            match_ok <- id_ok && g_ok && se_ok
+            if (!match_ok)
+              reason <- paste0("content mismatch",
+                                if (!id_ok)  " [study_id]" else "",
+                                if (!g_ok)   " [g]"        else "",
+                                if (!se_ok)  " [se_g]"     else "")
+          }
+        }
+        if (match_ok && isTRUE(repair)) {
+          if (!dir.exists(ldir)) dir.create(ldir, recursive = TRUE)
+          utils::write.csv(ds$latent, latent_path, row.names = FALSE)
+          wrote <- TRUE
+        }
+      }
+      rows[[length(rows) + 1L]] <- data.frame(
+        stratum            = strat,
+        cell_slug          = cell,
+        rep_id             = as.integer(rid),
+        exists_data_csv    = file.exists(csv_path),
+        exists_latent_csv  = file.exists(latent_path),
+        regenerated        = regen_ok,
+        match_existing     = match_ok,
+        wrote_latent       = wrote,
+        mismatch_reason    = reason,
+        stringsAsFactors   = FALSE)
+    }
+  }
+  per_rep <- if (length(rows)) do.call(rbind, rows) else
+    data.frame(stratum = character(0), cell_slug = character(0),
+               rep_id = integer(0), exists_data_csv = logical(0),
+               exists_latent_csv = logical(0), regenerated = logical(0),
+               match_existing = logical(0), wrote_latent = logical(0),
+               mismatch_reason = character(0),
+               stringsAsFactors = FALSE)
+  summary_ <- list(
+    n_inspected        = nrow(per_rep),
+    n_match            = sum(per_rep$match_existing),
+    n_mismatch         = sum(!per_rep$match_existing &
+                              per_rep$regenerated),
+    n_regen_error      = sum(!per_rep$regenerated),
+    n_wrote            = sum(per_rep$wrote_latent),
+    repair_enabled     = isTRUE(repair))
+
+  if (!is.null(write_report)) {
+    wd <- dirname(write_report)
+    if (!dir.exists(wd)) dir.create(wd, recursive = TRUE)
+    utils::write.csv(per_rep, write_report, row.names = FALSE)
+    if (isTRUE(verbose))
+      message(sprintf("[latent-repair] wrote %s", write_report))
+  }
+  if (isTRUE(verbose)) {
+    message(sprintf(paste0(
+      "[latent-repair] %s: inspected=%d  match=%d  mismatch=%d  ",
+      "regen_error=%d  wrote=%d"),
+      if (isTRUE(repair)) "repair=TRUE" else "DRY-RUN",
+      summary_$n_inspected, summary_$n_match,
+      summary_$n_mismatch, summary_$n_regen_error,
+      summary_$n_wrote))
+    if (!isTRUE(repair) && summary_$n_match > 0L)
+      message("[latent-repair] re-run with repair = TRUE to write ",
+              "matched latent files.")
+    if (summary_$n_mismatch > 0L)
+      message("[latent-repair] ", summary_$n_mismatch,
+              " rep(s) regenerated to a different observed table; ",
+              "NOTHING was written for those. Check that base_seed ",
+              "and the design row match the original generation.")
+  }
+  invisible(list(per_rep = per_rep, summary = summary_,
+                 write_report = write_report))
 }

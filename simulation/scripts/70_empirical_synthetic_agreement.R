@@ -594,19 +594,28 @@ sim_write_agreement_report <- function(path,
 #'   sim_run_empirical_weighted_synthetic() with the supplied
 #'   B / pool_key / smoothing / workers etc. and `write = FALSE`. If
 #'   FALSE, stop with a clear message.
-#' @param B / pool_key / smoothing / kappa / support / workers /
-#'   allow_partial Forwarded to sim_run_empirical_weighted_synthetic()
-#'   when re-run. Defaults match the recommended Q3 path: `smoothing =
-#'   "eb_corpus"`, `kappa = 4`, `support = "occupied"`,
-#'   `pool_key = "target"`.
-#' @param allow_config_mismatch The Q3 **stale-config guard**. If
-#'   FALSE (default), the function stops when the loaded Q3 CSVs
-#'   report a B / pool_key / smoothing / kappa / support_scope that
-#'   does not match the requested args. Set to TRUE to override (e.g.
-#'   when reusing an existing CSV intentionally with a different B
-#'   request). Loaded B is inferred from
+#' @param B / pool_key / smoothing / kappa / support When `NULL`
+#'   (the default), each setting is auto-adopted from the loaded Q3
+#'   CSVs and a `[sa]` message names what was adopted; every output
+#'   row also carries `loaded_B_stratum` / `loaded_pool_key` / etc.
+#'   columns as an audit trail. Pass a value explicitly to assert it
+#'   (the Q3 **stale-config guard** fires on mismatch for that
+#'   field). If no Q3 CSVs are on disk and `run_composition_if_missing
+#'   = TRUE`, the recommended Q3 fallbacks are used for both the
+#'   fresh-compute call and the agreement stamping: `B = 500L`
+#'   (dev tier), `pool_key = "target"`, `smoothing = "eb_corpus"`,
+#'   `kappa = 4`, `support = "occupied"`. Loaded B is inferred from
 #'   `length(unique(composition_id))` in the stratum + corpus draw
 #'   CSVs.
+#' @param workers / allow_partial Forwarded to
+#'   sim_run_empirical_weighted_synthetic() when re-run.
+#' @param allow_config_mismatch The Q3 **stale-config guard**. Only
+#'   relevant for fields the user passed explicitly (NULL fields are
+#'   adopted from the loaded CSVs and never trigger the guard). If
+#'   FALSE (default), the function stops when an explicitly passed
+#'   B / pool_key / smoothing / kappa / support does not match the
+#'   loaded value. Set to TRUE to override (e.g. when reusing an
+#'   existing CSV intentionally with a different B request).
 #' @param allow_B_mismatch Deprecated alias for
 #'   `allow_config_mismatch` (the guard now covers more than B);
 #'   emits a soft warning when passed and forwards the value. Will be
@@ -626,13 +635,20 @@ sim_run_empirical_synthetic_agreement <- function(
     agreement_dir    = file.path("simulation", "results", "agreement"),
     composition      = NULL,
     run_composition_if_missing = TRUE,
-    # B tiers: 500 dev / 5000 internal high-precision / 15000
-    # final-publication. Pass B explicitly for final runs.
-    B                = 500L,
-    pool_key         = "target",
-    smoothing        = "eb_corpus",
-    kappa            = 4,
-    support          = "occupied",
+    # B / pool_key / smoothing / kappa / support default to NULL.
+    # When NULL, the value is auto-adopted from the loaded Q3 CSVs and
+    # a [sa] message names what was adopted. Pass a value explicitly
+    # to assert it -- the Q3 stale-config guard fires on mismatch for
+    # that field only. When no Q3 CSVs are on disk (fresh-compute
+    # path), NULLs fall back to the recommended Q3 defaults:
+    # B = 500L (dev tier; 5000 internal / 15000 final),
+    # pool_key = "target", smoothing = "eb_corpus", kappa = 4,
+    # support = "occupied".
+    B                = NULL,
+    pool_key         = NULL,
+    smoothing        = NULL,
+    kappa            = NULL,
+    support          = NULL,
     workers              = NULL,
     allow_partial        = FALSE,
     allow_config_mismatch = FALSE,
@@ -646,6 +662,20 @@ sim_run_empirical_synthetic_agreement <- function(
             call. = FALSE)
     allow_config_mismatch <- isTRUE(allow_B_mismatch)
   }
+  # Track which of the five config knobs the user explicitly set.
+  # User-set fields still fire the stale-config guard on mismatch;
+  # NULL fields are adopted from the loaded Q3 CSVs (or fall back to
+  # documented defaults for the fresh-compute path).
+  user_set <- list(B         = !is.null(B),
+                   pool_key  = !is.null(pool_key),
+                   smoothing = !is.null(smoothing),
+                   kappa     = !is.null(kappa),
+                   support   = !is.null(support))
+  if (is.null(B))         B         <- 500L
+  if (is.null(pool_key))  pool_key  <- "target"
+  if (is.null(smoothing)) smoothing <- "eb_corpus"
+  if (is.null(kappa))     kappa     <- 4
+  if (is.null(support))   support   <- "occupied"
   B <- as.integer(B)
   run_args <- list(
     empirical_root   = empirical_root,
@@ -712,14 +742,51 @@ sim_run_empirical_synthetic_agreement <- function(
       .infer_scalar(comp$stratum_draws, "support_scope"),
       .infer_scalar(comp$corpus_draws,  "support_scope")))
   comp$loaded_settings <- loaded
+
+  # Auto-adopt loaded Q3 settings for fields the user did not set.
+  # Audit trail: each output row stamps both the resolved value and
+  # the inferred-loaded value (`loaded_B_stratum` etc.), so files
+  # state both sides regardless of which path resolved them.
+  adopted <- character(0)
+  if (!user_set$B && !is.na(loaded$B_stratum)) {
+    B <- as.integer(loaded$B_stratum)
+    adopted <- c(adopted, sprintf("B=%d", B))
+  }
+  if (!user_set$pool_key && !is.na(loaded$pool_key)) {
+    pool_key <- as.character(loaded$pool_key)
+    adopted <- c(adopted, sprintf("pool_key=%s", pool_key))
+  }
+  if (!user_set$smoothing && !is.na(loaded$smoothing)) {
+    smoothing <- as.character(loaded$smoothing)
+    adopted <- c(adopted, sprintf("smoothing=%s", smoothing))
+  }
+  if (!user_set$kappa &&
+      !is.na(suppressWarnings(as.numeric(loaded$kappa)))) {
+    kappa <- as.numeric(loaded$kappa)
+    adopted <- c(adopted, sprintf("kappa=%g", kappa))
+  }
+  if (!user_set$support && !is.na(loaded$support_scope)) {
+    support <- as.character(loaded$support_scope)
+    adopted <- c(adopted, sprintf("support=%s", support))
+  }
+  if (length(adopted) && isTRUE(verbose))
+    message("[sa] adopting loaded Q3 config from CSVs: ",
+            paste(adopted, collapse = ", "),
+            " (pass explicitly to assert + activate stale-config ",
+            "guard)")
+
   comp$requested_settings <- list(
     B = as.integer(B), pool_key = pool_key, smoothing = smoothing,
     kappa = if (identical(smoothing, "eb_corpus"))
               as.numeric(kappa) else NA_real_,
     support_scope = support)
 
+  # Mismatch guard fires only for fields the user passed explicitly.
+  # Fields left NULL were just adopted from `loaded` and cannot
+  # mismatch by construction.
   mismatches <- character(0)
-  add <- function(field, requested, loaded_val) {
+  add <- function(field, requested, loaded_val, was_set) {
+    if (!isTRUE(was_set)) return()
     if (is.null(loaded_val) || (length(loaded_val) == 1L &&
                                 is.na(loaded_val))) return()
     if (!identical(as.character(requested), as.character(loaded_val)))
@@ -727,25 +794,27 @@ sim_run_empirical_synthetic_agreement <- function(
         "%s: requested=%s, loaded=%s",
         field, as.character(requested), as.character(loaded_val))
   }
-  if (!is.na(loaded$B_stratum) && loaded$B_stratum != as.integer(B))
+  if (user_set$B && !is.na(loaded$B_stratum) &&
+      loaded$B_stratum != as.integer(B))
     mismatches <- c(mismatches, sprintf(
       paste0("B (stratum draws): requested=%d, loaded=%d ",
              "(inferred from unique composition_id count)"),
       as.integer(B), as.integer(loaded$B_stratum)))
-  if (!is.na(loaded$B_corpus) && loaded$B_corpus != as.integer(B))
+  if (user_set$B && !is.na(loaded$B_corpus) &&
+      loaded$B_corpus != as.integer(B))
     mismatches <- c(mismatches, sprintf(
       "B (corpus draws): requested=%d, loaded=%d",
       as.integer(B), as.integer(loaded$B_corpus)))
-  add("pool_key",      pool_key,  loaded$pool_key)
-  add("smoothing",     smoothing, loaded$smoothing)
-  if (identical(smoothing, "eb_corpus") &&
+  add("pool_key",      pool_key,  loaded$pool_key,  user_set$pool_key)
+  add("smoothing",     smoothing, loaded$smoothing, user_set$smoothing)
+  if (user_set$kappa && identical(smoothing, "eb_corpus") &&
       !is.na(suppressWarnings(as.numeric(loaded$kappa)))) {
     kl <- as.numeric(loaded$kappa)
     if (!identical(as.numeric(kappa), kl))
       mismatches <- c(mismatches, sprintf(
         "kappa: requested=%g, loaded=%g", as.numeric(kappa), kl))
   }
-  add("support_scope", support,   loaded$support_scope)
+  add("support_scope", support,   loaded$support_scope, user_set$support)
 
   if (length(mismatches) && identical(comp$source, "csv") &&
       !isTRUE(allow_config_mismatch)) {

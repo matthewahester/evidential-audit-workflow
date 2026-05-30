@@ -167,14 +167,21 @@
   "median_rigor_margin")
 
 # Single source of truth for human-readable facet / strip / axis labels.
-# CSV columns stay raw; only figure display text changes.
+# CSV columns stay raw; only figure display text changes. The rate-of-
+# selected-branch labels ("Selected branch = ...") describe stored
+# branch-label metadata, not a standalone evidential conclusion; the
+# headline evidential estimand is median_log10BF_rigor (selected log
+# rigor BF). Branch labels are useful descriptors, but when
+# log10BF_rigor <= 0 the better-supported clean resolved branch lost
+# support relative to its complement, so a branch label alone should
+# not be read as evidence either way.
 .CV_METRIC_LABELS <- c(
   median_log10BF_rigor          = "Rigor evidence",
-  p_rigor_direction_effect      = "Rigor favors effect",
-  p_rigor_direction_no_effect   = "Rigor favors no effect",
+  p_rigor_direction_effect      = "Selected branch = effect",
+  p_rigor_direction_no_effect   = "Selected branch = no_effect",
   p_clean_effect_supported      = "Clean effect support",
   p_clean_no_effect_supported   = "Clean no-effect support",
-  p_clean_evidence_disfavored   = "Clean evidence against effect",
+  p_clean_evidence_disfavored   = "Clean resolved evidence disfavored",
   p_inconclusive_clean_evidence = "Inconclusive clean evidence",
   median_rigor_margin           = "Rigor margin",
   median_mu_RE                  = "Baseline effect",
@@ -317,6 +324,15 @@
 .CV_HET    <- c("lowhet", "midhet", "highhet")
 .CV_BIAS   <- c("clean", "modbias", "highbias")
 
+# --- visual-readability constants (2026-05 polish pass) ------------------
+# Centralized so manuscript readability can be tuned in one place. The
+# pre-polish defaults were base_size = 12 with hardcoded geom_text sizes
+# of 2.8-3.4 and axis.text.x sizes of 7-8 in several plotters, which
+# rendered too small once the PDFs were embedded in the manuscript.
+.CV_THEME_BASE_SIZE     <- 14    # global theme base font size
+.CV_HEATMAP_LABEL_SIZE  <- 3.8   # geom_text size on heatmap tiles
+.CV_AXIS_TEXT_SMALL     <- 10    # rotated axis-text overrides (stratum / cell)
+
 # Sentinel-source the base pipeline utilities if `.VIS_COLORS` is
 # missing. Define-only: scripts/00_utils.R installs functions +
 # constants and reads/writes nothing. Searched along the same relative
@@ -419,24 +435,26 @@ if (!exists(".VIS_COLORS", inherits = TRUE)) {
   invisible(TRUE)
 }
 
-.cv_theme <- function(base_size = 12) {
+.cv_theme <- function(base_size = .CV_THEME_BASE_SIZE) {
   g <- asNamespace("ggplot2")
   g$theme_minimal(base_size = base_size) +
     g$theme(
       panel.grid.minor = g$element_blank(),
       panel.grid.major = g$element_line(color = "gray92", linewidth = 0.3),
       strip.text       = g$element_text(face = "bold", size = base_size - 1),
-      plot.title       = g$element_text(face = "bold", size = base_size),
-      plot.subtitle    = g$element_text(size = base_size - 2,
-                                        color = "gray35"),
-      plot.caption     = g$element_text(size = base_size - 3,
-                                        color = "gray45", hjust = 0),
-      plot.margin      = g$margin(12, 14, 8, 12),
+      plot.title       = g$element_text(face = "bold", size = base_size + 1),
+      plot.subtitle    = g$element_text(size = base_size - 1,
+                                        color = "gray35",
+                                        lineheight = 1.15),
+      plot.caption     = g$element_text(size = base_size - 2,
+                                        color = "gray45", hjust = 0,
+                                        lineheight = 1.15),
+      plot.margin      = g$margin(14, 16, 10, 14),
       panel.border     = g$element_rect(colour = "gray40", fill = NA,
                                         linewidth = 0.35),
       legend.position  = "bottom",
-      legend.title     = g$element_text(size = base_size - 2),
-      legend.text      = g$element_text(size = base_size - 3))
+      legend.title     = g$element_text(size = base_size - 1),
+      legend.text      = g$element_text(size = base_size - 2))
 }
 
 # --- run-metadata caption helpers ----------------------------------------
@@ -509,20 +527,79 @@ if (!exists(".VIS_COLORS", inherits = TRUE)) {
 # named list/character vector of `key=value` overrides; values that
 # are NA, NULL, or empty are dropped.
 .cv_meta_line <- function(df = NULL, source_csv = NULL,
-                          extras = list()) {
+                          extras = list(),
+                          suppress = character(0)) {
+  # Manuscript-conservative footer (2026-05-27 declutter pass).
+  # Per Section 4 / docs/section4_visual_mcse_plan.md, the plot footer
+  # carries the irreducible run-tier identity: B (only when meaningful),
+  # bootstrap_mode (Q2-relevant), non-primary Q3 settings, and the
+  # compact n_pool/n_fit/n_obs range. Source CSV is NOT printed on the
+  # plot; it remains recorded in the per-question markdown reports and
+  # the sync manifest. `source_csv` is accepted for backward
+  # compatibility with callers (.cv_save passes it) but no longer
+  # appended to the embedded plot caption.
+  #
+  # `suppress` is a character vector of field names to drop from the
+  # metadata line. Callers that already include the equivalent
+  # information in an interpretive note (e.g. .cv_fit_library_note()
+  # supplies "n_fit"; .cv_resampling_note() supplies "B" and a
+  # n_outcomes grid) should pass the matching key(s) to avoid a
+  # double-print on the embedded plot footer.
+  in_suppress <- function(k) any(tolower(k) == tolower(suppress))
   parts <- character(0)
-  # B always shown (n/a for non-resampling diagnostics).
-  bv <- .cv_infer_B(df)
-  parts <- c(parts, sprintf("B=%s",
-    if (is.na(bv)) "n/a" else as.character(bv)))
-  # Known config columns surfaced when present in the data frame.
+  # B shown only when it represents an actual resampling/sampling tier.
+  # Deterministic / input-map diagnostics return NA and are emitted
+  # with no B token (avoids "B=n/a" clutter).
+  if (!in_suppress("B")) {
+    bv <- .cv_infer_B(df)
+    if (!is.na(bv))
+      parts <- c(parts, sprintf("B=%s", as.character(bv)))
+  }
+  # Section 4 of the manuscript defines the Q3 primary configuration
+  # as pool_key=target, smoothing=eb_corpus, kappa=4, support_scope=
+  # occupied. Suppressing these fields from per-figure footers when
+  # they match the primary keeps Q3 metadata compact; non-primary
+  # values (e.g. smoothing=corpus_blend in dev/legacy CSVs) remain
+  # visible so the footer stays honest about run tier.
+  .primary_defaults <- list(
+    pool_key      = "target",
+    smoothing     = "eb_corpus",
+    kappa         = "4",
+    support_scope = "occupied")
+  .matches_default <- function(key, val) {
+    def <- .primary_defaults[[key]]
+    if (is.null(def)) return(FALSE)
+    a <- suppressWarnings(as.character(val))
+    if (key == "kappa") {
+      # Loose numeric compare so "4" / "4.0" / "4L" all suppress.
+      an <- suppressWarnings(as.numeric(a))
+      dn <- suppressWarnings(as.numeric(def))
+      return(is.finite(an) && is.finite(dn) && isTRUE(an == dn))
+    }
+    isTRUE(tolower(a) == tolower(def))
+  }
+  # bootstrap_mode is Q2-specific; never suppressed-by-default (it is
+  # informative on every Q2 figure). It can still be force-suppressed
+  # via the suppress argument if a caller asks.
   for (key in c("pool_key", "smoothing", "kappa", "support_scope",
                 "bootstrap_mode")) {
+    if (in_suppress(key)) next
     v <- .cv_meta_value(df, key)
-    if (!is.na(v) && nzchar(v))
-      parts <- c(parts, sprintf("%s=%s", key, v))
+    if (is.na(v) || !nzchar(v)) next
+    if (.matches_default(key, v)) next   # suppress when matches primary
+    parts <- c(parts, sprintf("%s=%s", key, v))
   }
-  parts <- c(parts, .cv_infer_pool_or_fit(df))
+  # n_pool / n_fit / n_obs tokens, filtered by the suppress list. The
+  # underlying helper emits `key=value` strings, so filter by key prefix.
+  pool_fit_parts <- .cv_infer_pool_or_fit(df)
+  if (length(suppress) && length(pool_fit_parts)) {
+    keep <- !vapply(pool_fit_parts, function(p) {
+      k <- sub("=.*$", "", p)
+      in_suppress(k)
+    }, logical(1))
+    pool_fit_parts <- pool_fit_parts[keep]
+  }
+  parts <- c(parts, pool_fit_parts)
   # Extras override / supplement the auto-inferred values. Values can
   # be scalar; NA / empty values are dropped.
   if (length(extras)) {
@@ -534,23 +611,27 @@ if (!exists(".VIS_COLORS", inherits = TRUE)) {
       parts <- c(parts, sprintf("%s=%s", nm, vc))
     }
   }
-  if (!is.null(source_csv) && length(source_csv) == 1L &&
-      !is.na(source_csv) && nzchar(source_csv))
-    parts <- c(parts, sprintf("source=%s", basename(source_csv)))
+  # `source_csv` intentionally NOT emitted on the plot footer; reports
+  # carry the source provenance instead.
   paste(parts, collapse = "; ")
 }
 
 # Append a compact metadata line to the figure's existing caption.
-# Idempotent on `meta_line = ""` (returns the plot unchanged).
+# Idempotent on `meta_line = ""` (returns the plot unchanged). Long
+# captions are soft-wrapped so they do not clip past the plot panel at
+# the bumped global base size (2026-05 polish pass).
 .cv_add_metadata_caption <- function(p, meta_line) {
   if (is.null(meta_line) || !length(meta_line) ||
       !nzchar(meta_line)) return(p)
   g <- asNamespace("ggplot2")
   existing <- p$labels$caption
   if (is.null(existing)) existing <- ""
-  new_cap <- if (nzchar(existing))
-               paste0(existing, "\n", meta_line)
-             else meta_line
+  wrap <- function(s) paste(strwrap(s, width = 110L), collapse = "\n")
+  existing_w <- if (nzchar(existing)) wrap(existing) else ""
+  meta_w     <- wrap(meta_line)
+  new_cap <- if (nzchar(existing_w))
+               paste0(existing_w, "\n", meta_w)
+             else meta_w
   p + g$labs(caption = new_cap)
 }
 
@@ -560,12 +641,14 @@ if (!exists(".VIS_COLORS", inherits = TRUE)) {
 # so every plot carries B / pool_key / smoothing / kappa / source CSV.
 .cv_save <- function(p, path, width = 9, height = 6, verbose = TRUE,
                      meta_df = NULL, meta_source = NULL,
-                     meta_extras = list()) {
+                     meta_extras = list(),
+                     meta_suppress = character(0)) {
   if (!is.null(meta_df) || !is.null(meta_source) ||
       length(meta_extras)) {
     p <- .cv_add_metadata_caption(
       p, .cv_meta_line(meta_df, source_csv = meta_source,
-                       extras = meta_extras))
+                       extras = meta_extras,
+                       suppress = meta_suppress))
   }
   ggplot2::ggsave(path, p, width = width, height = height,
                   limitsize = FALSE, useDingbats = FALSE, device = "pdf")
@@ -773,33 +856,31 @@ cv_plot_weight_heatmap <- function(weights, path, verbose = TRUE) {
   dom$het_slug    <- factor(dsp$heterogeneity_slug, levels = .CV_HET)
   dom$bias_slug   <- factor(dsp$bias_slug, levels = .CV_BIAS)
 
+  # Portrait orientation (2026-05 polish): 4 effect rows x 3 bias cols,
+  # heterogeneity within each panel on x and stratum on y. All 36 cells
+  # remain visible; stratum labels now repeat per row, which is the goal.
   p <- g$ggplot(full, g$aes(x = .data$het_slug, y = .data$stratum)) +
     g$geom_tile(g$aes(fill = .data$smoothed_weight),
                 color = "gray90", linewidth = 0.15) +
     g$geom_tile(data = dom, fill = NA, color = .CV_DIAG,
                 linewidth = 0.5) +
-    g$facet_grid(. ~ effect_slug + bias_slug, switch = "x") +
+    g$facet_grid(effect_slug ~ bias_slug, switch = "y") +
     g$scale_fill_gradient(low = .CV_HEAT_LOW, high = .CV_HEAT_HIGH,
                           name = "empirical-weighted sampling weight") +
     g$labs(
       title = "Empirical fitted-cell mixtures used for synthetic sampling",
       subtitle = paste0(
-        "Fill is the empirical fitted-cell mixture weight used to ",
-        "sample fitted synthetic rows; orange outline = per-stratum ",
-        "dominant cell."),
-      x = "effect band x bias band  /  heterogeneity within panel",
-      y = "stratum",
+        "Fill = empirical fitted-cell mixture weight; ",
+        "orange outline = per-stratum dominant cell."),
+      x = "heterogeneity band (within panel)  /  bias band (panel column)",
+      y = "stratum  /  effect band (panel row)",
       caption = paste0(
-        "Cells are assigned from empirical fitted outputs using ",
-        "abs(mu_BC), tau_BC, and log10BF_bias. Default smoothing is ",
-        "`eb_corpus` (empirical-Bayes support-masked; sums to 1 over ",
-        "each stratum's occupied cells; NOT spatial smoothing over ",
-        "the 36-cell grid). Q3 empirical-weighted sampling map, not ",
-        "an outcome result.")) +
+        "Q3 input map, not an outcome result. ",
+        "Mechanism + smoothing details in the Q3 report.")) +
     .cv_theme() +
-    g$theme(axis.text.x = g$element_text(size = 7, angle = 90,
-                                         vjust = 0.5, hjust = 1))
-  .cv_save(p, path, width = 15, height = 5.5, verbose = verbose,
+    g$theme(axis.text.x = g$element_text(size = .CV_AXIS_TEXT_SMALL,
+                                         angle = 35, vjust = 1, hjust = 1))
+  .cv_save(p, path, width = 11, height = 14, verbose = verbose,
            meta_df = weights,
            meta_source = "empirical_stratum_cell_weights.csv")
 }
@@ -828,8 +909,8 @@ cv_plot_axis_transition <- function(axis_trans, axis, path,
   p <- g$ggplot(d, g$aes(x = .data$target, y = .data$observed)) +
     g$geom_tile(g$aes(fill = .data$p), color = "gray85",
                 linewidth = 0.25) +
-    g$geom_text(g$aes(label = sprintf("%.2f", .data$p)), size = 3.4,
-                color = "gray20") +
+    g$geom_text(g$aes(label = sprintf("%.2f", .data$p)),
+                size = .CV_HEATMAP_LABEL_SIZE, color = "gray20") +
     g$geom_tile(data = diag, fill = NA, color = .CV_DIAG,
                 linewidth = 0.5) +
     g$scale_fill_gradient(low = .CV_HEAT_LOW, high = .CV_HEAT_HIGH,
@@ -840,15 +921,12 @@ cv_plot_axis_transition <- function(axis_trans, axis, path,
                       .cv_axis_display_name(axis)),
       subtitle = "Fill/label = P(observed band | target/DGM band)",
       x = sprintf("target %s band", axis),
-      y = sprintf("observed %s band", axis),
+      y = sprintf("observed (fitted-profile) %s band", axis),
       caption = paste0(
-        "Diagnoses whether the fitted cell-assignment basis ",
-        "(abs(mu_BC), tau_BC, log10BF_bias) recovers the intended ",
-        "design axes; helps interpret the empirical fitted-cell ",
-        "mixture used in Q3 empirical-weighted synthetic sampling. ",
-        "Profile-definition diagnostic, not a Q3 outcome figure.")) +
+        "Profile-definition diagnostic, not a Q3 outcome figure. ",
+        "Basis details in the Q3 report.")) +
     .cv_theme()
-  .cv_save(p, path, width = 6.5, height = 6, verbose = verbose,
+  .cv_save(p, path, width = 8.5, height = 7.5, verbose = verbose,
            meta_df = axis_trans,
            meta_source = "synthetic_axis_transition.csv",
            meta_extras = list(axis = axis))
@@ -963,13 +1041,13 @@ cv_write_deferred <- function(path) {
   empirical_resampling_rigor_variability_by_stratum.pdf =
     "Q2 primary: empirical resampling variability of rigor. One line per stratum; y = width90 = q95 - q05 of stratum-level median selected rigor across B empirical resamples; faceted by bootstrap mode (outcome, source_cluster). Lower = more stable.",
   empirical_resampling_core_uncertainty_heatmap.pdf =
-    "Q2 primary: observed-size empirical bootstrap uncertainty (width90 = q95 - q05) per (stratum, core metric, mode). Core metrics: selected rigor, rigor margin, bias evidence, absolute attenuation. Lower = more stable. Inf widths are clamped to the terminal fill color and labeled Inf.",
+    "Q2 primary: observed-size empirical bootstrap uncertainty (width90 = q95 - q05) per (stratum, core metric, mode). Core metrics: rigor evidence, bias evidence, absolute attenuation. Lower = more stable. Inf widths are clamped to the terminal fill color and labeled Inf.",
   empirical_resampling_core_intervals.pdf =
     "Q2 primary: observed-size interval profiles per (stratum, core metric, mode). Filled point = observed empirical estimate; thick bar = q05-q95; thin bar = q025-q975. Non-finite endpoints are clamped to the per-facet terminal axis boundary and reported in the markdown report.",
   empirical_weighted_synthetic_rigor_variability_by_stratum.pdf =
     "Q3 primary: empirical-weighted synthetic sampling variability of rigor. One line per empirical stratum; y = width90 = q95 - q05 of stratum-level median selected rigor across B empirical-weighted synthetic draws; lower = more stable.",
   empirical_bootstrap_vs_empirical_weighted_synthetic_core_metrics.pdf =
-    "Q3 bridge primary: empirical bootstrap (blue) vs empirical-weighted synthetic sampling (purple) for core audit metrics (selected rigor, rigor margin, bias evidence, absolute attenuation), matched to each stratum's empirical n_outcomes. Directional/thresholded p_* rate metrics are deliberately excluded."
+    "Q3 bridge primary: empirical bootstrap (blue) vs empirical-weighted synthetic sampling (purple) for core audit metrics (rigor evidence, bias evidence, absolute attenuation), matched to each stratum's empirical n_outcomes. Directional/thresholded p_* rate metrics are deliberately excluded."
 )
 
 #' Write the empirical-weighted synthetic sampling visuals report
@@ -1144,8 +1222,8 @@ cv_write_visuals_report <- function(path, inputs, figures_written,
   ad("- The empirical-bootstrap-vs-empirical-weighted-synthetic ",
      "core-metrics overlay contrasts empirical bootstrap uncertainty ",
      "(blue) with empirical-weighted synthetic uncertainty (purple) ",
-     "at each stratum's observed n_outcomes, for selected rigor, ",
-     "rigor margin, bias evidence, and absolute attenuation.")
+     "at each stratum's observed n_outcomes, for rigor evidence, ",
+     "bias evidence, and absolute attenuation.")
   ad("- The three axis-recovery heatmaps are profile-definition ",
      "diagnostics: they show P(observed band | target/DGM band) for ",
      "each axis and help interpret whether the fitted cell-",
@@ -1434,7 +1512,9 @@ cv_plot_cell_rigor_atlas <- function(rigor_df, path, verbose = TRUE) {
   d$rigor <- suppressWarnings(as.numeric(d$median_log10BF_rigor))
 
   # Diverging fill centered at 0 keeps the rigor sign legible: positive
-  # = rigor favors evidence, negative = rigor favors no_effect.
+  # = clean resolved evidence supported, negative = clean resolved
+  # evidence disfavored (the better-supported branch lost support
+  # relative to its complement; not "rigor favors no_effect").
   finv <- d$rigor[is.finite(d$rigor)]
   lim <- if (length(finv)) max(abs(finv), na.rm = TRUE) else 1
   if (!is.finite(lim) || lim == 0) lim <- 1
@@ -1444,7 +1524,7 @@ cv_plot_cell_rigor_atlas <- function(rigor_df, path, verbose = TRUE) {
                 linewidth = 0.25) +
     g$geom_text(g$aes(label = ifelse(is.na(.data$rigor), "NA",
                                      sprintf("%.2f", .data$rigor))),
-                size = 3.0, color = "gray15") +
+                size = .CV_HEATMAP_LABEL_SIZE, color = "gray15") +
     g$facet_wrap(~ bias_slug, nrow = 1L) +
     # Diverging fill: muted red (negative) -> cream (zero) -> muted
     # sage (positive). Avoids saturated green; pulled from
@@ -1457,17 +1537,19 @@ cv_plot_cell_rigor_atlas <- function(rigor_df, path, verbose = TRUE) {
       name = "median log10 BF rigor", na.value = "white") +
     g$labs(
       title = "Known-cell rigor atlas",
-      subtitle = paste0("Fill = median selected rigor (log10 BF) at ",
-                        "each design cell. Positive = rigor favors ",
-                        "evidence; negative = rigor favors no_effect."),
+      subtitle = paste0("Fill = median selected rigor (log10 BF). ",
+                        "Positive = clean resolved evidence supported; ",
+                        "negative = clean resolved evidence disfavored."),
       x = "heterogeneity band", y = "effect band",
-      caption = paste(c("cell_diagnostics_rigor.csv. Q1 primary.",
-                        .cv_fit_library_note(rigor_df)),
-                       collapse = " ")) +
+      caption = .cv_fit_library_note(rigor_df)) +
     .cv_theme()
-  .cv_save(p, path, width = 12, height = 5.5, verbose = verbose,
+  # Caption already carries .cv_fit_library_note(rigor_df) ("Synthetic
+  # fit library: n_fit = ... per cell."); suppress the matching n_fit
+  # token from the compact metadata line to avoid a double-print.
+  .cv_save(p, path, width = 13, height = 6.5, verbose = verbose,
            meta_df = rigor_df,
-           meta_source = "cell_diagnostics_rigor.csv")
+           meta_source = "cell_diagnostics_rigor.csv",
+           meta_suppress = "n_fit")
 }
 
 #' Q1 primary: known-cell attenuation / effect recovery atlas.
@@ -1564,7 +1646,9 @@ cv_plot_cell_attenuation_atlas <- function(effect_draws, path,
     g$geom_boxplot(outlier.size = 0.2, outlier.alpha = 0.25,
                    linewidth = 0.3, width = 0.6,
                    color = "gray25") +
-    g$facet_grid(effect_slug ~ bias_slug + het_slug,
+    # Portrait orientation (2026-05 polish): rows = bias x het (9),
+    # cols = effect (4), so the figure reads as a tall full-page atlas.
+    g$facet_grid(bias_slug + het_slug ~ effect_slug,
                   switch = "y") +
     # Method palette: Baseline RE = BLUE, RoBMA-PSMA = RED. This
     # mapping is load-bearing -- every figure that names these methods
@@ -1576,26 +1660,28 @@ cv_plot_cell_attenuation_atlas <- function(effect_draws, path,
       guide = "none") +
     g$labs(
       title = "Known-cell attenuation / effect recovery atlas",
-      subtitle = paste0("Each panel shows the distribution of baseline ",
-                        "and bias-corrected fitted effects across ",
-                        "synthetic outcomes in one design cell; ",
-                        "horizontal line = true effect."),
+      subtitle = paste0(
+        "Per-cell boxplots of baseline vs bias-corrected fitted ",
+        "effects;\n",
+        "horizontal dashed line = true effect."),
       x = NULL, y = "fitted effect estimate (mu)",
-      caption = paste(c(paste0("cell_behavior_effect_draws.csv. Q1 ",
-                                "primary. Distributions only (no ",
-                                "paired traces); shared y-axis."),
+      caption = paste(c("Distributions only (no paired traces); shared y-axis.",
                         .cv_fit_library_note(effect_draws)),
                        collapse = " ")) +
     .cv_theme() +
-    g$theme(strip.text.x = g$element_text(size = 7),
-            strip.text.y = g$element_text(size = 8, angle = 0),
-            axis.text.x  = g$element_text(size = 7, angle = 35,
-                                          hjust = 1, vjust = 1))
+    g$theme(strip.text.x = g$element_text(size = .CV_THEME_BASE_SIZE - 2),
+            strip.text.y = g$element_text(size = .CV_THEME_BASE_SIZE - 3,
+                                          angle = 0),
+            axis.text.x  = g$element_text(size = .CV_AXIS_TEXT_SMALL,
+                                          angle = 35, hjust = 1, vjust = 1))
   if (!is.null(ylim))
     p <- p + g$coord_cartesian(ylim = ylim)
-  .cv_save(p, path, width = 16, height = 9, verbose = verbose,
+  # Caption already carries .cv_fit_library_note(effect_draws); suppress
+  # the matching n_fit token from the metadata line.
+  .cv_save(p, path, width = 11, height = 13.5, verbose = verbose,
            meta_df = effect_draws,
-           meta_source = "cell_behavior_effect_draws.csv")
+           meta_source = "cell_behavior_effect_draws.csv",
+           meta_suppress = "n_fit")
 }
 
 #' Q1 primary: known-cell rigor VARIABILITY vs n, split by effect band.
@@ -1664,20 +1750,18 @@ cv_plot_cell_rigor_variability_by_effect <- function(
       x = "n_outcomes (synthetic resample size per cell)",
       y = sprintf("width90(%s) = q95 - q05", metric_label),
       caption = paste(
-        c(paste0("synthetic_cell_size_curve_summary.csv. ",
-                 "Variability = sampling variability of the per-cell ",
-                 "stratum summary across B draws; NOT posterior ",
-                 "uncertainty and NOT a Monte-Carlo standard error. ",
-                 "Q1 primary."),
-          .cv_resampling_note(d),
-          .cv_cell_behavior_warning(d)),
+        c(.cv_resampling_note(d), .cv_cell_behavior_warning(d)),
         collapse = " ")) +
     .cv_theme() +
     g$guides(color = g$guide_legend(order = 1L),
              linetype = g$guide_legend(order = 2L))
+  # Caption already carries .cv_resampling_note(d) ("Resampling: B =
+  # ...; n_outcomes = ..."); suppress the matching B token from the
+  # metadata line to avoid a double-print.
   .cv_save(p, path, width = 12, height = 8, verbose = verbose,
            meta_df = d,
-           meta_source = "synthetic_cell_size_curve_summary.csv")
+           meta_source = "synthetic_cell_size_curve_summary.csv",
+           meta_suppress = "B")
 }
 
 #' Q1 primary support: minimum-viable-n table for a continuous metric.
@@ -1783,7 +1867,7 @@ cv_plot_cell_rigor_viability_min_n <- function(
                 fill = .CV_FAIL, alpha = 0.32,
                 color = "gray85", linewidth = 0.25) +
     g$geom_text(g$aes(label = .data$label),
-                size = 2.9, color = "gray15") +
+                size = .CV_HEATMAP_LABEL_SIZE, color = "gray15") +
     g$facet_grid(threshold_label ~ bias_slug) +
     g$scale_fill_gradient(low = .CV_HEAT_LOW, high = .CV_HEAT_HIGH,
                           name = "min viable n",
@@ -1797,12 +1881,12 @@ cv_plot_cell_rigor_viability_min_n <- function(
         "n <= ", n_grid_max, "."),
       x = "heterogeneity band", y = "effect band",
       caption = paste0(
-        "synthetic_cell_rigor_viability_min_n.csv. Q1 primary. ",
         "Viability is threshold-dependent; treat as a design ",
         "diagnostic. ",
         .cv_cell_behavior_warning(d))) +
     .cv_theme() +
-    g$theme(strip.text.y = g$element_text(angle = 0, size = 8))
+    g$theme(strip.text.y = g$element_text(angle = 0,
+                                           size = .CV_THEME_BASE_SIZE - 3))
   # Derived figure: inherit B + the full n_outcomes grid from the
   # parent size-curve summary when available; the viability table
   # itself only carries n_grid_max. Source string lists both files
@@ -1862,7 +1946,7 @@ cv_plot_cell_rigor_width_heatmap_by_n <- function(
                 linewidth = 0.25) +
     g$geom_text(g$aes(label = ifelse(is.na(.data$width90), "NA",
                                      sprintf("%.2f", .data$width90))),
-                size = 2.6, color = "gray15") +
+                size = .CV_HEATMAP_LABEL_SIZE - 0.4, color = "gray15") +
     g$facet_grid(n_label ~ bias_slug) +
     g$scale_fill_gradient(low = .CV_HEAT_LOW, high = .CV_HEAT_HIGH,
                           name = sprintf("width90(%s)", metric_label),
@@ -1874,13 +1958,10 @@ cv_plot_cell_rigor_width_heatmap_by_n <- function(
         "Fill = q95 - q05 of stratum-level ", metric_label,
         " across B synthetic resamples; lower = more stable."),
       x = "heterogeneity band", y = "effect band",
-      caption = paste(
-        c(paste0("synthetic_cell_size_curve_summary.csv. Q1 ",
-                 "secondary/diagnostic."),
-          .cv_cell_behavior_warning(d)),
-        collapse = " ")) +
+      caption = .cv_cell_behavior_warning(d)) +
     .cv_theme() +
-    g$theme(strip.text.y = g$element_text(angle = 0, size = 8))
+    g$theme(strip.text.y = g$element_text(angle = 0,
+                                           size = .CV_THEME_BASE_SIZE - 3))
   .cv_save(p, path, width = 12, height = 9, verbose = verbose,
            meta_df = size_summary,
            meta_source = "synthetic_cell_size_curve_summary.csv",
@@ -1947,18 +2028,18 @@ cv_plot_cell_rigor_width_heatmap_by_n <- function(
       x = "n_outcomes (synthetic resample size per cell)",
       y = y_label,
       caption = paste(
-        c(paste0("synthetic_cell_size_curve_summary.csv. ",
-                 caption_role, "."),
-          .cv_resampling_note(d),
-          .cv_cell_behavior_warning(d)),
+        c(.cv_resampling_note(d), .cv_cell_behavior_warning(d)),
         collapse = " ")) +
     .cv_theme() +
     g$guides(color = g$guide_legend(order = 1L),
              linetype = g$guide_legend(order = 2L))
+  # Caption already carries .cv_resampling_note(d); suppress the
+  # matching B token from the metadata line.
   .cv_save(p, path, width = 12, height = 8, verbose = verbose,
            meta_df = d,
            meta_source = "synthetic_cell_size_curve_summary.csv",
-           meta_extras = list(metric = metric))
+           meta_extras = list(metric = metric),
+           meta_suppress = "B")
 }
 
 #' Q1 secondary: known-cell bias-evidence variability vs n, by effect.
@@ -2293,10 +2374,12 @@ sim_run_cell_behavior_visuals <- function(
 
 # Core audit metric set (Q2 default; mirrors the Q3 core-metric overlay
 # so the two questions report on the same metric family). The order
-# defines facet/column order.
+# defines facet/column order. 2026-05-27 trim: rigor margin removed
+# from the manuscript-facing core-metric set (still a valid sidecar
+# field in .CV_PRIMARY_RIGOR_METRICS / .CV_METRIC_LABELS, but not a
+# main Q2/Q3 dashboard panel).
 .CV_Q2_CORE_METRICS <- c(
   "median_log10BF_rigor",
-  "median_rigor_margin",
   "median_log10BF_bias",
   "median_attenuation_abs")
 
@@ -2355,17 +2438,12 @@ cv_plot_empirical_resampling_rigor_variability_by_stratum <- function(
     g$labs(
       title = "Empirical resampling variability of rigor",
       subtitle = paste0(
-        "Y-axis = 90% bootstrap interval width (q95 - q05) of the ",
-        "stratum-level median ", metric_label,
-        " across B empirical resamples. Lower is more stable. ",
-        "Outcome mode resamples outcome rows; source-cluster mode ",
-        "resamples source_article clusters."),
+        "Y = width90 (q95 - q05) of stratum-level median ",
+        metric_label, " across B empirical resamples. ",
+        "Lower is more stable."),
       x = "n_sampled (resampled units; outcome rows or source clusters)",
       y = sprintf("width90(%s) = q95 - q05", metric_label),
-      caption = paste0(
-        "empirical_resampling_size_curve_summary.csv. Sampling ",
-        "variability across B empirical resamples; NOT posterior ",
-        "uncertainty and NOT a Monte-Carlo standard error. Q2 primary.")) +
+      caption = NULL) +
     .cv_theme() +
     g$theme(legend.position = if (length(unique(d$stratum)) > 12L)
                                 "none" else "right") +
@@ -2446,10 +2524,13 @@ cv_plot_empirical_resampling_core_uncertainty_heatmap <- function(
   if (isTRUE(text_labels)) {
     p <- p + g$geom_text(
       g$aes(label = .data$width90_label),
-      size = 2.8, color = "gray20")
+      size = .CV_HEATMAP_LABEL_SIZE, color = "gray20")
   }
   p <- p +
-    g$facet_wrap(~ bootstrap_mode, ncol = 1L) +
+    # 1-row x 2-mode dashboard (2026-05-27 layout flip): with only 3
+    # metric columns after the rigor-margin retirement, the two
+    # bootstrap modes sit side-by-side instead of stacking vertically.
+    g$facet_wrap(~ bootstrap_mode, nrow = 1L) +
     g$scale_fill_gradient(
       low = .CV_HEAT_LOW, high = .CV_HEAT_HIGH,
       name = "width90 = q95 - q05",
@@ -2457,25 +2538,27 @@ cv_plot_empirical_resampling_core_uncertainty_heatmap <- function(
     g$labs(
       title = "Observed-size empirical bootstrap uncertainty",
       subtitle = paste0(
-        "Fill / text label = q95 - q05 at each stratum's observed ",
-        "sample size. Metrics are core audit metrics: selected rigor, ",
-        "rigor margin, bias evidence, absolute attenuation. Lower is ",
-        "more stable. Inf widths are clamped to the terminal fill ",
-        "color and labeled Inf."),
+        "Fill / label = width90 = q95 - q05 at each stratum's ",
+        "observed sample size; lower = more stable. Inf clamped."),
       x = NULL, y = "stratum",
-      caption = paste0(
-        "empirical_resampling_observed_size_intervals.csv. ",
-        "Outcome-mode resamples outcome rows; source-cluster mode ",
-        "resamples source_article clusters. Q2 primary.")) +
+      caption = "Outcome mode = outcome rows; source-cluster mode = source_article clusters.") +
     .cv_theme() +
     g$theme(axis.text.x = g$element_text(angle = 30, hjust = 1,
-                                         vjust = 1, size = 9))
-  .cv_save(p, path, width = 12,
-           height = max(5, 2.0 + length(unique(d$stratum)) * 0.35 *
-                       length(unique(d$bootstrap_mode))),
+                                         vjust = 1,
+                                         size = .CV_AXIS_TEXT_SMALL + 1))
+  # Manuscript-conservative footer (mirrors Q2 core_intervals):
+  # compact modes=... label, n_pool suppressed; full provenance is in
+  # the Q2 markdown report. Height no longer multiplies by the number
+  # of bootstrap modes because the modes are now side-by-side.
+  modes_str <- paste(sort(unique(as.character(d$bootstrap_mode))),
+                     collapse = ", ")
+  .cv_save(p, path, width = 13,
+           height = max(6, 2.4 + length(unique(d$stratum)) * 0.42),
            verbose = verbose,
            meta_df = d,
-           meta_source = "empirical_resampling_observed_size_intervals.csv")
+           meta_source = "empirical_resampling_observed_size_intervals.csv",
+           meta_extras = list(modes = modes_str),
+           meta_suppress = c("bootstrap_mode", "n_pool"))
 }
 
 #' Q2 primary: observed-size empirical resampling intervals for the
@@ -2542,6 +2625,10 @@ cv_plot_empirical_resampling_core_intervals <- function(
     d$q025_p[sel] <- cap_endpoint(sub$q025, obs_center, half_max)
     d$q975_p[sel] <- cap_endpoint(sub$q975, obs_center, half_max)
   }
+  # Detect whether the source intervals contained any non-finite
+  # endpoint; the in-plot clamping note only appears when at least one
+  # endpoint was clamped. Full per-cell detail is in the Q2 report.
+  .had_clamp <- any(!is.finite(c(d$q05, d$q95, d$q025, d$q975)))
   d$metric <- .cv_metric_factor(d$metric, metrics)
 
   p <- g$ggplot(d, g$aes(y = .data$stratum,
@@ -2556,31 +2643,37 @@ cv_plot_empirical_resampling_core_intervals <- function(
                  position = g$position_dodge(width = 0.6),
                  size = 1.9, fill = "white", shape = 21,
                  stroke = 0.7) +
-    g$facet_wrap(~ metric, scales = "free_x", ncol = 2L) +
+    # 1-row x 4-cols compact horizontal dashboard (2026-05 polish).
+    g$facet_wrap(~ metric, scales = "free_x", nrow = 1L) +
     g$scale_color_manual(values = c(
       outcome        = unname(.VIS_COLORS$bootstrap_mode[["outcome"]]),
       source_cluster = unname(.VIS_COLORS$bootstrap_mode[["source_cluster"]])),
       name = "bootstrap mode") +
     g$labs(
       title = "Observed-size empirical resampling intervals",
-      subtitle = paste0(
-        "Observed-size slice of the empirical resampling curve. ",
-        "Filled point = observed empirical estimate; thick bar = ",
-        "q05-q95; thin bar = q025-q975. Metrics are core audit ",
-        "metrics: selected rigor, rigor margin, bias evidence, ",
-        "absolute attenuation."),
+      subtitle = "Points = observed estimates; bars = q05-q95 and q025-q975 intervals.",
       x = "metric value (per-facet scale)", y = "stratum",
-      caption = paste0(
-        "empirical_resampling_observed_size_intervals.csv. ",
-        "Non-finite endpoints are clamped to a per-facet terminal ",
-        "axis boundary so the row stays visible; the report lists ",
-        "affected cells. Q2 primary.")) +
+      caption = if (.had_clamp)
+        "Non-finite endpoints are clamped; details in report." else NULL) +
     .cv_theme()
-  .cv_save(p, path, width = 13,
-           height = max(5, 1.4 + length(unique(d$stratum)) * 0.35),
+  # Manuscript-conservative footer: replace verbose
+  # `bootstrap_mode=outcome|source_cluster` with compact
+  # `modes=outcome, source_cluster`, and suppress n_pool (not central
+  # to the observed-size interval display). bootstrap_mode + n_pool are
+  # therefore suppressed from the default metadata line and the modes
+  # token is injected via meta_extras. Full bootstrap_mode / n_pool /
+  # source CSV remain in the Q2 markdown report.
+  modes_str <- paste(sort(unique(as.character(d$bootstrap_mode))),
+                     collapse = ", ")
+  # Width reduced 13 -> 11 because the dashboard is now 1 row x 3 cols
+  # (rigor margin retired from the core-metric set, 2026-05-27).
+  .cv_save(p, path, width = 11,
+           height = max(5.5, 1.8 + length(unique(d$stratum)) * 0.40),
            verbose = verbose,
            meta_df = d,
-           meta_source = "empirical_resampling_observed_size_intervals.csv")
+           meta_source = "empirical_resampling_observed_size_intervals.csv",
+           meta_extras = list(modes = modes_str),
+           meta_suppress = c("bootstrap_mode", "n_pool"))
 }
 
 # ---- Q2 report writer (corpus core-metric table + Inf diagnostics) ----
@@ -2759,12 +2852,13 @@ cv_plot_empirical_resampling_core_intervals <- function(
      "Lower = more stable. This is sampling variability across B ",
      "empirical resamples; NOT posterior uncertainty and NOT a ",
      "Monte-Carlo standard error.")
-  ad("- Default Q2 figures use exactly the core audit metric set: ",
-     "selected rigor, rigor margin, bias evidence, absolute ",
-     "attenuation. Directional / thresholded `p_*` rate metrics are ",
-     "available in `empirical_resampling_size_curve_summary.csv` for ",
-     "ad-hoc inspection but are deliberately not default Q2 visual ",
-     "targets.")
+  ad("- Default Q2 figures use the core audit metric set: ",
+     "rigor evidence, bias evidence, absolute attenuation. ",
+     "Rigor margin is retained as a sidecar field for diagnostic ",
+     "inspection but is not a default Q2 visual target. ",
+     "Directional / thresholded `p_*` rate metrics are available in ",
+     "`empirical_resampling_size_curve_summary.csv` for ad-hoc ",
+     "inspection but are deliberately not default Q2 visual targets.")
   ad("- B tiers: 500 (dev / visual tuning; default), 5000 (internal ",
      "high-precision check), 15000 (final / publication when ",
      "feasible). Pass B explicitly to `emp_run_resampling()` for ",
@@ -2949,19 +3043,14 @@ cv_plot_empirical_weighted_rigor_variability_by_stratum <- function(
     g$labs(
       title = "Empirical-weighted synthetic sampling variability of rigor",
       subtitle = paste0(
-        "Y-axis = 90% interval width (q95 - q05) of the stratum-",
-        "level median ", metric_label,
-        " across B empirical-weighted synthetic draws. Lower is more ",
-        "stable. Each line = one empirical stratum's fitted-cell ",
-        "mixture sampled from the synthetic library."),
+        "Y = width90 (q95 - q05) of stratum-level median ",
+        metric_label, ".\n",
+        "Lower values are more stable. One line per empirical ",
+        "fitted-profile cell mixture."),
       x = paste0("n_outcomes (empirical-weighted synthetic resample ",
                  "size per stratum)"),
       y = sprintf("width90(%s) = q95 - q05", metric_label),
-      caption = paste0(
-        "empirical_weighted_synthetic_size_curve_summary.csv. ",
-        "Sampling variability across B empirical-weighted synthetic ",
-        "draws; NOT posterior uncertainty and NOT a Monte-Carlo ",
-        "standard error. Q3 primary.")) +
+      caption = NULL) +
     .cv_theme() +
     g$theme(legend.position = if (length(unique(d$stratum)) > 12L)
                                 "none" else "right") +
@@ -3008,7 +3097,6 @@ cv_plot_empirical_weighted_rigor_variability_by_stratum <- function(
 cv_plot_emp_bootstrap_vs_empirical_weighted_core_metrics <- function(
     intervals_df, ews_summary, path,
     metrics        = c("median_log10BF_rigor",
-                       "median_rigor_margin",
                        "median_log10BF_bias",
                        "median_attenuation_abs"),
     bootstrap_mode = "outcome",
@@ -3097,26 +3185,23 @@ cv_plot_emp_bootstrap_vs_empirical_weighted_core_metrics <- function(
                  shape = 21, fill = "white", color = syn_col,
                  size = 1.9,
                  position = g$position_nudge(y = -0.18)) +
-    g$facet_wrap(~ metric, scales = "free_x") +
+    # 1-row x 4-cols compact horizontal dashboard (2026-05 polish);
+    # mirrors the Q2 core-intervals layout for visual symmetry.
+    g$facet_wrap(~ metric, scales = "free_x", nrow = 1L) +
     g$labs(
       title = paste0("Empirical bootstrap vs empirical-weighted ",
                      "synthetic sampling"),
       subtitle = paste0(
-        "Blue = empirical bootstrap q05-q95 with observed point. ",
-        "Purple = empirical-weighted synthetic q05-q95 with ",
-        "synthetic median, matched to each stratum's empirical ",
-        "n_outcomes. Metrics are core audit metrics (selected ",
-        "rigor, rigor margin, bias evidence, absolute attenuation)."),
+        "Blue = empirical bootstrap (q05-q95 + observed).\n",
+        "Purple = empirical-weighted synthetic (q05-q95 + median), ",
+        "matched to each stratum's empirical n_outcomes."),
       x = "metric value (per-facet scale)", y = "stratum",
-      caption = paste0(
-        "empirical_resampling_observed_size_intervals.csv + ",
-        "empirical_weighted_synthetic_size_curve_summary.csv. ",
-        "Directional/thresholded p_* rate metrics are deliberately ",
-        "excluded from this default overlay. Q3 bridge primary.")) +
+      caption = "Directional/thresholded p_* rate metrics excluded by design.") +
     .cv_theme()
-  .cv_save(p, path, width = 13,
-           height = max(5, 1.4 + length(unique(d$stratum)) * 0.4 *
-                        ceiling(length(unique(d$metric)) / 2)),
+  # Width reduced 13 -> 11; Q3 bridge is now 1 row x 3 cols
+  # (rigor margin retired from the core-metric set, 2026-05-27).
+  .cv_save(p, path, width = 11,
+           height = max(5.5, 1.8 + length(unique(d$stratum)) * 0.40),
            verbose = verbose,
            meta_df = ews_summary,
            meta_source = paste(

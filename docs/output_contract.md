@@ -67,7 +67,7 @@ CONFIG$scheme      <- "simulation_cell"
 The per-stage argument-name table and worked example are in
 [`pipeline_layout.md`](pipeline_layout.md); the simulation contract and
 remaining-pass map are in
-[`../simulation/README_simulation_v3_1.md`](../simulation/README_simulation_v3_1.md).
+[`../simulation/README.md`](../simulation/README.md).
 
 ---
 
@@ -311,7 +311,7 @@ from the empirical `output/`. They are all **generated / regenerable**
 generation time via `sim_generate_library(n_reps = ...)`; downstream
 outputs report the current library size in their rows rather than in
 filenames. See
-[`../simulation/README_simulation_v3_1.md`](../simulation/README_simulation_v3_1.md)
+[`../simulation/README.md`](../simulation/README.md)
 for the canonical workflow.
 
 | Path | Written by | Contents | Policy |

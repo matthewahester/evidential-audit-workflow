@@ -1,4 +1,32 @@
-# Manuscript Bridge — Claims → Pipeline Artifacts
+# Manuscript Bridge — HISTORICAL / SUPERSEDED
+
+> **Status: historical.** This file was last accurate before the 2026-05
+> simulation refocus and Q3 terminology pass. It references RoBMA 3.6,
+> the retired topic-world figure names (`orchard_*`, `violin_stack_fullpage`,
+> `boxplot_strip_single`, `scatter_effect_vs_bias`), the 5,400-outcome
+> (n_reps = 150) library tier, the legacy `synthetic_composition/` Q3
+> folder, the placeholder treatment of the simulation section, and
+> manuscript subtrees (`05_figures/`, `07_build/`, `BUILD_NOTES.md`) that
+> no longer reflect the current `Rigor_Manuscript/` layout. The current
+> manuscript ships RoBMA 4.0, the v4 `corpus_*` figure set, the
+> 18,000-outcome (n_reps = 500) library, the `empirical_weighted_synthetic/`
+> Q3 folder, and a worked Section 4 simulation/resampling characterization.
+>
+> **For current manuscript ↔ artifact alignment, see:**
+>
+> - [`docs/output_contract.md`](output_contract.md) — sidecar / registry / figure contract.
+> - [`docs/pipeline_layout.md`](pipeline_layout.md) — repository tree and one-scheme-per-output-root rule.
+> - [`docs/visuals.md`](visuals.md) — current figure family by axis and consumer.
+> - `Rigor_Manuscript/docs/supplement_artifact_inventory.md` — what is pinned vs repository-only.
+> - `Rigor_Manuscript/docs/simulation_artifacts.md` — pinned Section 4 / supplement simulation artifacts.
+> - `simulation/README.md` — Q1/Q2/Q3 runners and outputs.
+>
+> The remainder of this file is kept for provenance; do not treat any
+> claim below as current release documentation.
+
+---
+
+## Historical content (pre-2026-05; do not act on)
 
 Maps the manuscript to the pipeline artifacts that support it. **Not a
 rewrite plan.** The manuscript is `Rigor_Manuscript/` (pdfLaTeX; see

@@ -13,8 +13,9 @@ live in `simulation/scripts/`); see the retired-material notes below.
 ├── data/                    Immutable analysis-ready CSVs + extraction .xlsx
 │   ├── <path_stratum>/<source_article>/<dataset_id>.csv (+ .xlsx)
 │   └── sim_<cell_slug>/sim2026/repNNNN.csv  generated SYNTHETIC CSVs
-│                              (DEFERRED — local; not committed until
-│                              B/n_reps are manuscript-frozen)
+│                              (NOT shipped on GitHub; regenerable from
+│                              simulation/config/design_v3_full36.csv
+│                              + the fixed generation seed)
 ├── output/                  ACTIVE nutrition output root (one scheme/corpus)
 │   ├── <stratum>/                       per-stratum sidecars + per-source fits
 │   │   ├── <stratum>_robma_summary.csv
@@ -28,16 +29,18 @@ live in `simulation/scripts/`); see the retired-material notes below.
 ├── simulation/              SEPARATE sub-project (own README/config/scripts)
 │   ├── scripts/             active simulation source (00–75)
 │   ├── config/              canonical 36-cell design grid
-│   ├── manifests/, latent/  DEFERRED — local generated artifacts;
-│                            not committed until B/n_reps are manuscript-frozen
+│   ├── manifests/, latent/  NOT shipped on GitHub; local generated
+│                            artifacts; regenerated alongside data/sim_*/
+│                            by sim_generate_library()
 │   └── results/             IGNORED — sim diagnostics + raw draws
 │                            (4 GB+; regenerable from scripts + design CSV)
 ├── archive/                 Retired / frozen material
 │   ├── 55_orchard_visuals.R   small retired diagnostic (committed for provenance)
 │   └── RoBMA_3_6/             IGNORED — 71 GB RoBMA-3.6 snapshot
 ├── Rigor_Manuscript/        Manuscript source (pdfLaTeX; 01_main, 02_supplement,
-│                            03_exec_summary, 05_figures, 06_refs) — sibling
-│                            working directory, not inside this repo
+│                            03_exec_summary, 04_shared, 05_artifacts, 06_refs,
+│                            docs, tools) — sibling working directory,
+│                            not inside this repo
 ├── CITATION.cff, LICENSE, LICENSE-data, README.md
 ```
 

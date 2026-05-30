@@ -1,12 +1,11 @@
 # =============================================================================
 # CITATION.cff
 #
-# Fields prefixed `TODO_` are intentional placeholders to be filled in at
-# preprint posting (manuscript fields), at release tagging (version, date,
-# repository URL, archived-release DOI), and after author profile setup
-# (ORCID). They are not missing values to be inferred; they will be replaced
-# with verified information in the same commit that posts the corresponding
-# external artifact.
+# Release-candidate metadata. Fields that require values minted at release
+# time (Zenodo DOI) or at manuscript posting (arXiv URL, journal DOI, year,
+# journal name) are intentionally omitted rather than carried as
+# placeholders. Add them in follow-up commits at the corresponding
+# release/posting milestones.
 # =============================================================================
 cff-version: 1.2.0
 message: "If you use this pipeline, please cite both the repository and the associated manuscript."
@@ -27,9 +26,9 @@ authors:
     given-names: Matt
     affiliation: "Department of Mathematics and Statistics, University of Arkansas at Little Rock"
     email: mhester@ualr.edu
-    orcid: "TODO_ORCID"
-repository-code: "TODO_REPOSITORY_URL"
-url: "TODO_REPOSITORY_URL"
+    orcid: "https://orcid.org/0009-0008-4242-4094"
+repository-code: "https://github.com/matthewahester/evidential-audit-workflow"
+url: "https://github.com/matthewahester/evidential-audit-workflow"
 license: MIT
 keywords:
   - meta-analysis
@@ -40,23 +39,13 @@ keywords:
   - research synthesis methods
   - reproducible workflow
   - evidential audit
-version: "TODO_RELEASE_VERSION"
-date-released: "TODO_RELEASE_DATE"
-identifiers:
-  - type: doi
-    value: "TODO_ZENODO_DOI"
-    description: "Archived release DOI (e.g., Zenodo)"
 
 preferred-citation:
   type: article
-  title: "Widespread Evidential Fragility in Nutrition Intervention Meta-Analyses: A Bias-Robust Bayesian Reanalysis"
+  title: "Quantifying Evidential Rigor in Meta-Analytic Corpora: A Simulation-Characterized, Bias-Robust Bayesian Workflow with a Nutrition Case Study"
   authors:
     - family-names: Hester
       given-names: Matt
       affiliation: "Department of Mathematics and Statistics, University of Arkansas at Little Rock"
       email: mhester@ualr.edu
-      orcid: "TODO_ORCID"
-  year: "TODO_PUBLICATION_YEAR"
-  journal: "TODO_JOURNAL"
-  doi: "TODO_MANUSCRIPT_DOI"
-  url: "TODO_MANUSCRIPT_URL"
+      orcid: "https://orcid.org/0009-0008-4242-4094"

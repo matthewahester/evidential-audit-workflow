@@ -1,8 +1,10 @@
-# Simulation / resampling layer (v3.1 focused runbook)
+# Simulation / resampling layer
 
 This folder builds the simulation and resampling layer for the RoBMA-PSMA rigor-estimand pipeline for systematic evidential auditing. The nutrition corpus is the worked empirical example. The simulation layer is general: it evaluates how the audit workflow behaves under constructed effect x heterogeneity x bias-burden regimes and how that behavior relates to empirical resampling and empirical-weighted synthetic sampling.
 
 The v4 main pipeline remains the source of truth. Synthetic datasets are exported as audit-ready CSVs, then passed through the same loader, fitter, sidecar writer, registry builder, and summary reducers used by the empirical pipeline.
+
+> **Public release note.** Generated simulation datasets, fitted simulation outputs, raw resampling/sampling draws, and the full simulation result trees are **not committed** to the public GitHub repository. They are regenerable from the scripts, design grid, and recorded R / JAGS environment documented here and in [`../docs/environment.md`](../docs/environment.md). The manuscript and supplement contain the reported displays; this folder provides the machinery and the runbook to reproduce them. See [`../docs/output_commit_policy.md`](../docs/output_commit_policy.md) for the full commit policy.
 
 ---
 
@@ -12,7 +14,7 @@ The v4 main pipeline remains the source of truth. Synthetic datasets are exporte
 |---|---|---|---|
 | **Q1. Known-cell behavior** | How does selected rigor behave under each 36-cell design cell, especially as `n_outcomes` grows through 5-30, and how stable are its core audit components (bias evidence, absolute attenuation)? | `cell_diagnostics_*`; `cell_behavior/synthetic_cell_size_curve_*` | per-cell rigor + attenuation atlases; rigor variability + viability; component variability for bias evidence and absolute attenuation |
 | **Q2. Empirical resampling stability** | If the empirical nutrition registry is resampled, how stable are the observed stratum/corpus rigor summaries? | `empirical_resampling/*` | stratum rigor variability over `n_sampled`; observed-size core-metric uncertainty heatmap; observed-size core-metric intervals |
-| **Q3. Empirical fitted-cell-weighted synthetic sampling** | Given empirical outcomes' deterministic fitted-cell assignments (`\|mu_BC\|`, `tau_BC`, `log10BF_bias`), how do synthetic samples drawn from the fitted synthetic library under each stratum's fitted-cell mixture behave? Default weighting is empirical-Bayes support-masked (`smoothing = "eb_corpus"`, `kappa = 4`, `support = "occupied"`); pool basis is `pool_key = "target"` (sensitivity: `"observed"`). | `empirical_weighted_synthetic/*`; `agreement/*` | empirical fitted-cell mixture map; empirical-weighted synthetic rigor variability; empirical-bootstrap vs empirical-weighted synthetic core-metrics overlay |
+| **Q3. Empirical fitted-cell-weighted synthetic sampling** | Given empirical outcomes' deterministic fitted-cell assignments (`\|mu_BC\|`, `tau_BC`, `log10BF_bias`), how do synthetic samples drawn from the fitted synthetic library under each stratum's fitted-cell mixture behave? Default weighting is support-masked shrinkage weighting (code label `smoothing = "eb_corpus"`, `kappa = 4`, `support = "occupied"`); pool basis is `pool_key = "target"` (sensitivity: `"observed"`). | `empirical_weighted_synthetic/*`; `agreement/*` | empirical fitted-cell mixture map; empirical-weighted synthetic rigor variability; empirical-bootstrap vs empirical-weighted synthetic core-metrics overlay |
 
 Diagnostic/provenance outputs are still useful, but they are not primary analysis questions: target-observed transitions, target provenance, observed recovery, and pool support are reported as diagnostics.
 
@@ -30,7 +32,7 @@ Use these terms consistently in comments, reports, figure captions, and prose. I
 | `k` / `k_studies` | Number of studies inside one generated/fitted meta-analytic outcome. |
 | `n_outcomes` | Number of outcome-level meta-analyses summarized inside a stratum/corpus draw. |
 | `B` | Resampling/sampling replicate count (Monte-Carlo precision of the resampling summary). Lives in row columns + reports; never in filenames. |
-| `n_reps` | Per-target-cell depth of the fitted synthetic library (current primary: 150/cell; optional finite-library sensitivity: 500/cell if diagnostics warrant). |
+| `n_reps` | Per-target-cell depth of the fitted synthetic library. Publication primary: 500/cell (the 18,000-outcome library is complete). `n_reps = 150` was the development/internal tier. |
 
 The 5-30 stability range refers to `n_outcomes` unless the analysis explicitly says it is varying `k_studies` inside the DGM. `B` and `n_reps` are independent: increasing `B` reduces Monte-Carlo noise in the resampling summary; it does not smooth away finite-support roughness, which is a function of `n_reps`.
 
@@ -49,14 +51,28 @@ Each numbered simulation script has exactly one operator-facing public runner. L
 | `scripts/60_estimand_tables.R` (main pipeline, not simulation) | `build_estimand_tables(root = "output_sim_v30", output_dir = "output_sim_v30/overview")` | overview registry consumed by 65 |
 | `60_empirical_resampling.R` | `emp_run_resampling(B = 500, ...)` | Q2 empirical resampling |
 | `65_synthetic_resampling.R` | `sim_run_synthetic_resampling(B = 500, ...)` | Q1 known-cell size curve + Q3 empirical-weighted synthetic sampling at observed stratum sizes + Q3 empirical-weighted synthetic size curve |
-| `70_empirical_synthetic_agreement.R` | `sim_run_empirical_synthetic_agreement(B = 500)` | empirical-vs-synthetic agreement |
+| `70_empirical_synthetic_agreement.R` | `sim_run_empirical_synthetic_agreement()` (config auto-adopted from loaded Q3 CSVs) | empirical-vs-synthetic agreement |
 | `75_analysis_visuals.R` | `sim_run_all_analysis_visuals()` (after `source("scripts/00_utils.R")`) | Q1/Q2/Q3 figures + per-question reports + derived visualization tables |
 
 `sim_generate_library(n_reps = ...)` is the only place the operator picks synthetic replicates per cell. Downstream scripts inventory the generated/fitted library on disk. Replicate counts, bootstrap counts, pool basis, smoothing, and partial/development state belong in row columns and reports, not in stable filenames.
 
 ---
 
-## Mandatory handoff: sidecars -> simulation outcome registry
+## `simulation/latent/` is provenance only
+
+`simulation/latent/sim_<cell_slug>/sim<vintage>/repNNNN_latent.csv` carries the per-study DGM truth for each generated dataset (`theta_true`, `g_pre_bias`, `n_per_arm`, candidate-selection columns). It is written by `sim_export_dataset()` alongside the audit-ready observed CSV.
+
+**No active analysis reads latent files.** Q1 cell diagnostics (55), Q2 empirical resampling (60), Q3 empirical-weighted synthetic sampling (65), and the Q3 agreement layer (70) all read from the audit-ready CSVs under `data/sim_*/sim<vintage>/`, the fitted sidecars under `output_sim_v30/`, the overview registry under `output_sim_v30/overview/outcome_registry.csv`, and the analysis result CSVs under `simulation/results/`. `sim_inventory_library()` counts `_latent.csv` files for the `n_latent` column only; nothing opens them.
+
+Implications:
+- A latent-vs-data mismatch (e.g. 125 latent CSVs against 150 audit-ready CSVs in one cell) is a provenance signal. It can arise from interrupted earlier generation, prior runs under a different code path, or manual file movement.
+- Latent mismatch does NOT block RoBMA fitting (`sim_fit_library()`), registry-based resampling (`sim_run_synthetic_resampling()`), or the agreement layer.
+- The audit helper `sim_audit_latent_library()` reports per-cell `n_data_csv`, `n_latent_csv`, `n_missing_latent`, `n_extra_latent`, and optionally `n_fit_sidecars`. The repair helper `sim_repair_missing_latent()` regenerates the dataset deterministically from `(cell_row, rep_id, base_seed)` and writes the missing latent file ONLY when the regenerated observed table matches the existing audit-ready CSV on `study_id`/`g`/`se_g`. Default `repair = FALSE` is dry-run / report-only. Latent is never reconstructed from observed data alone (DGM-truth columns are not recoverable).
+- `sim_export_dataset()` handles observed and latent independently. Under `overwrite = FALSE`: an existing observed CSV is always left in place; a missing latent file is filled in only when the freshly generated observed table matches the on-disk observed CSV on `study_id`/`g`/`se_g` (tolerance 1e-10), otherwise latent is left missing and the row is flagged. Each manifest row carries `observed_status` ("written" | "skipped") and `latent_status` ("written" | "skipped" | "filled" | "mismatch" | "error"); the legacy `status` column mirrors `observed_status` so existing summary counters keep working. As a consequence, re-running `sim_generate_library(...)` self-heals an observed-existing / latent-missing gap — `sim_repair_missing_latent()` is no longer strictly required for that scenario, but remains the targeted, auditable interface.
+
+---
+
+## Sidecars -> simulation outcome registry handoff
 
 Different downstream layers read different products of the fitted library:
 
@@ -65,7 +81,17 @@ Different downstream layers read different products of the fitted library:
 | 55 diagnostics | simulation sidecars directly | live per-cell diagnostics, no registry needed |
 | 65 synthetic resampling (Q1 + Q3) | `output_sim_v30/overview/outcome_registry.csv` | pooled fitted synthetic registry for Q1 known-cell sampling and Q3 empirical-weighted synthetic sampling |
 
-Therefore every time the fitted simulation library changes, rebuild the simulation overview registry before running 65:
+As of 2026-05, `sim_run_synthetic_resampling()` rebuilds the simulation overview registry automatically before the resampling subroutines (default `refresh_registry = TRUE`); the canonical operator flow is just:
+
+```r
+source("simulation/scripts/55_sim_cell_diagnostics.R")
+sim_build_cell_diagnostics()
+
+source("simulation/scripts/65_synthetic_resampling.R")
+sim_run_synthetic_resampling(B = 500, n_grid = c(5:30, 35, 40, 50))
+```
+
+If you are calling the lower-level runners directly (`sim_run_cell_size_curve()`, `sim_run_empirical_weighted_synthetic()`, `sim_run_empirical_weighted_size_curve()`), or you want to refresh the registry without running any resampling, do it explicitly:
 
 ```r
 source("scripts/60_estimand_tables.R")
@@ -73,18 +99,14 @@ build_estimand_tables(
   root       = "output_sim_v30",
   output_dir = "output_sim_v30/overview"
 )
-```
-
-Or, equivalently, use the convenience wrapper exposed by 65:
-
-```r
+# or, equivalently, the convenience wrapper:
 source("simulation/scripts/65_synthetic_resampling.R")
 sim_refresh_synthetic_registry()
 ```
 
-This wrapper is documented and intentionally separate from `sim_build_cell_diagnostics()` and `sim_run_synthetic_resampling()` so the sidecar -> registry handoff stays visible. **Diagnostic rule:** if `cell_diagnostics_rigor.csv` reports larger `n_fit` than 65's `n_pool`, the overview registry is stale and the run should be redone after the rebuild. 65's `sim_run_cell_size_curve()` already prints a soft warning when this mismatch is detected.
+Pass `refresh_registry = FALSE` to `sim_run_synthetic_resampling()` to skip the auto-refresh when the registry is known fresh from an earlier call in the same session. **Diagnostic rule:** if `cell_diagnostics_rigor.csv` reports larger `n_fit` than 65's `n_pool`, the overview registry is stale; `sim_run_cell_size_curve()` already prints a soft warning when this mismatch is detected.
 
-`sim_build_cell_diagnostics()` does **not** rebuild the registry automatically: 55 is a sidecar-diagnostic layer with its own contract (no registry dependency), and hiding the rebuild inside 55 would blur the handoff that the synthetic resampling layer actually depends on.
+`sim_build_cell_diagnostics()` does **not** rebuild the registry automatically: 55 is a sidecar-diagnostic layer with its own contract (no registry dependency).
 
 ---
 
@@ -97,32 +119,26 @@ Operator runs after a full simulation rebuild. Each phase has a single purpose.
 ```r
 source("simulation/scripts/40_sim_run.R")
 
-sim_generate_library(n_reps = 150)
+sim_generate_library(n_reps = 500)
 sim_run_study_geometry()
 sim_fit_library()
 sim_scan_fit_progress()   # optional progress check
 ```
 
-`n_reps = 150` is the per-cell replication count for the fitted library and is a separate quantity from resampling `B`.
+`n_reps = 500` per cell is the publication target (the 18,000-outcome library is complete on disk). `n_reps = 150` was the development/internal tier. `n_reps` is the per-cell replication count for the fitted library and is a separate quantity from resampling `B`.
 
-### Phase B. Refresh fitted-library diagnostics and registry
+### Phase B. Refresh fitted-library diagnostics
 
 ```r
 source("simulation/scripts/55_sim_cell_diagnostics.R")
 sim_build_cell_diagnostics()
-
-source("scripts/60_estimand_tables.R")
-build_estimand_tables(
-  root       = "output_sim_v30",
-  output_dir = "output_sim_v30/overview"
-)
 ```
 
-The `build_estimand_tables()` call is the required handoff; without it, Phase C's 65 will resample from a stale pool.
+The overview-registry rebuild (`build_estimand_tables(root = "output_sim_v30", ...)`) used to be a manual step here, but as of 2026-05 it is folded into Phase C's `sim_run_synthetic_resampling()` (default `refresh_registry = TRUE`). Call `sim_refresh_synthetic_registry()` explicitly only when invoking the lower-level 65 runners directly, or when refreshing the registry without running any resampling. Pass `refresh_registry = FALSE` to Phase C if the registry was just rebuilt in the same session.
 
 ### Phase C. Run resampling / Q3 sampling analyses
 
-**Development / visual-tuning run** (`B = 500`; default smoothing is the empirical-Bayes support-masked `eb_corpus`):
+**Development / visual-tuning run** (`B = 500`; default smoothing is the support-masked shrinkage weighting with code label `eb_corpus`):
 
 ```r
 source("simulation/scripts/60_empirical_resampling.R")
@@ -144,15 +160,11 @@ sim_run_synthetic_resampling(
 )
 
 source("simulation/scripts/70_empirical_synthetic_agreement.R")
-sim_run_empirical_synthetic_agreement(
-  B                = 500,
-  pool_key         = "target",
-  smoothing        = "eb_corpus",
-  kappa            = 4,
-  support          = "occupied",
-  run_composition_if_missing = FALSE,
-  allow_config_mismatch = FALSE
-)
+# Auto-adopts B / pool_key / smoothing / kappa / support from the
+# loaded Q3 CSVs and prints a [sa] message naming what was adopted.
+# Pass any setting explicitly to assert it (guard fires on mismatch
+# for that field only).
+sim_run_empirical_synthetic_agreement()
 ```
 
 **Final / publication run** (`B = 15000`; same primary settings; expect long wall time):
@@ -171,6 +183,8 @@ sim_run_synthetic_resampling(
   workers       = 5
 )
 
+# Final run: assert every Q3 setting (engages stale-config guard for
+# all five fields) and refuse any implicit Q3 recompute.
 sim_run_empirical_synthetic_agreement(
   B                = 15000,
   pool_key         = "target",
@@ -190,9 +204,9 @@ sim_run_empirical_synthetic_agreement(
 | Internal high-precision check | 5000 | Verify stability of headline numbers before a final run. |
 | Final / publication | 15000 | Final figures and reports when feasible. |
 
-Increasing `B` reduces Monte-Carlo noise in the resampling summaries; it does **not** smooth away the empirical finite-support roughness driven by `n_reps`. `n_reps` (per-target-cell fitted-library depth) is a separate design quantity: the current primary is `n_reps = 150` per cell; `n_reps = 500` is an optional finite-library sensitivity if the fitted library shows borderline pool sizes in `cell_diagnostics_rigor.csv`.
+Increasing `B` reduces Monte-Carlo noise in the resampling summaries; it does **not** smooth away the empirical finite-support roughness driven by `n_reps`. `n_reps` (per-target-cell fitted-library depth) is a separate design quantity: the publication primary is **`n_reps = 500` per cell** (the 18,000-outcome library is complete on disk; `fit_progress_overall.csv` reports `library_status = complete_clean`). `n_reps = 150` was the earlier development/internal tier.
 
-**Stale-config guard (Q3).** 70 checks the loaded Q3 CSVs against the requested `B` / `pool_key` / `smoothing` / `kappa` / `support_scope` (loaded `B` is inferred from `length(unique(composition_id))` in the stratum + corpus draw CSVs). The default `allow_config_mismatch = FALSE` causes a hard stop on any mismatch — set `run_composition_if_missing = FALSE` for final runs so you cannot silently kick off an implicit Q3 recompute against partial fitted-library state. Pass `allow_config_mismatch = TRUE` only to deliberately reuse a Q3 CSV with a different B / smoothing / pool basis. The previous `allow_B_mismatch` argument is retained as a deprecated alias for one cycle (emits a soft warning and forwards through).
+**Stale-config guard (Q3).** `B` / `pool_key` / `smoothing` / `kappa` / `support` all default to `NULL` in 70 — when NULL, the value is auto-adopted from the loaded Q3 CSVs (loaded `B` is inferred from `length(unique(composition_id))` in the stratum + corpus draw CSVs; the others are read as columns) and a `[sa]` message names what was adopted. The guard fires **only** for fields the caller passed explicitly: assert any setting that must hold to catch a mismatch with the on-disk CSVs, leave any field NULL to inherit it. For final runs assert every Q3 setting and set `run_composition_if_missing = FALSE` so you cannot silently kick off an implicit Q3 recompute against partial fitted-library state. Every output row carries both the resolved value and the inferred-loaded value (`loaded_B_stratum` / `loaded_pool_key` / etc.) regardless of which path resolved them. Pass `allow_config_mismatch = TRUE` only to deliberately reuse a Q3 CSV with a different B / smoothing / pool basis. The previous `allow_B_mismatch` argument is retained as a deprecated alias for one cycle (emits a soft warning and forwards through).
 
 ### Phase D. Build visuals
 
@@ -389,7 +403,7 @@ simulation/results/figures/empirical_resampling/
 └── empirical_resampling_core_intervals.pdf                 # observed-size q05-q95 / q025-q975 intervals across core audit metrics
 ```
 
-Default Q2 visuals focus on (1) selected-rigor sampling variability over `n_sampled`, (2) observed-size empirical bootstrap uncertainty for the core audit metrics (selected rigor, rigor margin, bias evidence, absolute attenuation), and (3) observed-size interval profiles for those same core metrics. Directional/thresholded `p_*` rate metrics remain in `empirical_resampling_size_curve_summary.csv` for ad-hoc inspection but are not default Q2 visual targets.
+Default Q2 visuals focus on (1) selected-rigor sampling variability over `n_sampled`, (2) observed-size empirical bootstrap uncertainty for the manuscript-facing core audit metrics (selected rigor, bias evidence, absolute attenuation), and (3) observed-size interval profiles for those same core metrics. `median_rigor_margin` remains an available diagnostic/support field in the Q2 size-curve and observed-size CSVs but is not part of the manuscript-facing core metric set. Directional/thresholded `p_*` rate metrics remain in `empirical_resampling_size_curve_summary.csv` for ad-hoc inspection but are not default Q2 visual targets.
 
 Corpus-level Q2 information is retained as a markdown core-metric summary table inside `empirical_resampling_visuals_report.md` rather than as default PDFs (a one-row Overall figure is less informative than the stratum-level stability story). Non-finite widths / endpoints are preserved and reported.
 
@@ -411,7 +425,7 @@ sim_run_synthetic_resampling(
 )
 
 source("simulation/scripts/70_empirical_synthetic_agreement.R")
-sim_run_empirical_synthetic_agreement(B = 500)
+sim_run_empirical_synthetic_agreement()    # adopts B etc. from loaded CSVs
 ```
 
 Q3 outputs (renamed in the 2026-05 terminology pass):
@@ -477,7 +491,7 @@ Read in this sequence:
 
 1. **Empirical fitted-cell mixture input** (`empirical_stratum_cell_weights_heatmap.pdf`). Fill = corpus-blended empirical-weighted sampling weight; orange outline marks the per-stratum dominant cell.
 2. **Empirical-weighted synthetic sampling variability over `n_outcomes`** (`empirical_weighted_synthetic_rigor_variability_by_stratum.pdf`). One line per empirical stratum; y = `width90 = q95 - q05` of stratum-level median selected rigor across B empirical-weighted synthetic draws; lower = more stable.
-3. **Empirical bootstrap vs empirical-weighted synthetic** (`empirical_bootstrap_vs_empirical_weighted_synthetic_core_metrics.pdf`). Forest/range plot per (stratum, core metric): blue = empirical bootstrap; purple = empirical-weighted synthetic; matched to each stratum's empirical `n_outcomes`. Core metrics = `median_log10BF_rigor`, `median_rigor_margin`, `median_log10BF_bias`, `median_attenuation_abs`. Directional/thresholded `p_*` rate metrics are deliberately excluded.
+3. **Empirical bootstrap vs empirical-weighted synthetic** (`empirical_bootstrap_vs_empirical_weighted_synthetic_core_metrics.pdf`). Forest/range plot per (stratum, core metric): blue = empirical bootstrap; purple = empirical-weighted synthetic; matched to each stratum's empirical `n_outcomes`. Manuscript-facing core metrics = `median_log10BF_rigor`, `median_log10BF_bias`, `median_attenuation_abs`. `median_rigor_margin` is also written to the same CSVs as an available diagnostic/support field but is not in the manuscript-facing core set. Directional/thresholded `p_*` rate metrics are deliberately excluded.
 4. **Axis recovery diagnostics** (`synthetic_axis_transition_{effect,het,bias}_heatmap.pdf`). `P(observed band | target/DGM band)` per axis; help diagnose whether the fitted cell-assignment basis recovers the intended design axes.
 
 Visual grammar: heatmaps for cell / axis grids (36-cell mixture, 3-or-4-band axis recovery); forest/range plots for stratum-by-metric uncertainty comparisons; line/width plots for stability over `n_outcomes`.

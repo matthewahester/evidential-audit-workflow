@@ -43,19 +43,28 @@ exceptions.
 | Stratum figures | `output/<stratum>/plots/*.pdf` | Stratum/source inspection figures from `50_stratum_visuals.R`. |
 | Small archive metadata | `archive/55_orchard_visuals.R` (frozen retired diagnostic) | Sole archived item still tracked; retired v2 resampling sub-project and the inactive renv lockfile were removed from the public tree during cleanup. |
 
-## Defer until manuscript freeze
+## Generated simulation outputs: not shipped with the public GitHub release
 
-These are real, useful local artifacts; they are **not** ignored
-(`git status` will show them as untracked), but they are intentionally
-**not** committed yet. Commit them in a single "simulation library
-freeze" commit only when `B` (resampling/sampling replicate count) and
-`n_reps` (per-cell synthetic-library depth) are settled for the
-submission/preprint:
+Release decision (locked at v1.0.0): the public GitHub release ships
+the simulation **machinery and configuration** — scripts, design grid,
+runbook, design memo — but **not** the generated synthetic datasets,
+fitted simulation outputs, raw resampling/sampling draws, or result
+trees. They are regenerable from the included scripts, the design
+grid, and the recorded R / JAGS environment.
 
-| Category | Examples | Why deferred |
+| Category | Examples | Status in GitHub release |
 |---|---|---|
-| Synthetic data inputs | `data/sim_<cell_slug>/sim2026/repNNNN.csv` (~900–5,400 files, a few MB to ~17 MB total) | Library will be regenerated if `n_reps` changes (current 150 may move to 500 for the finite-library sensitivity tier). |
-| Simulation provenance | `simulation/manifests/*.csv`, `simulation/latent/sim_*/sim2026/*_latent.csv` (< 30 MB total) | Pinned to the current generation run; regenerated atomically alongside `data/sim_*/`. The current 125-vs-150 latent/data mismatch is a concrete signal that the library is mid-state. |
+| Synthetic data inputs | `data/sim_<cell_slug>/sim2026/repNNNN.csv` (~18,000 files at `n_reps = 500`, ~57 MB) | **Not shipped.** Regenerable from `simulation/config/design_v3_full36.csv` + the fixed generation seed in `simulation/scripts/20_sim_generate.R`. |
+| Simulation provenance | `simulation/manifests/*.csv`, `simulation/latent/sim_*/sim2026/*_latent.csv` (~18,000 latent files, ~95 MB) | **Not shipped.** Pinned to the current generation run; latent files have no active reader. |
+| Fitted simulation outputs | `output_sim_v30/<stratum>/...` (~54 GB; RDS fits + per-rep audit CSVs) | **Not shipped.** Regenerable by re-running `sim_fit_library()` after generation. |
+| Simulation result tree (small summaries + reports + figures + raw draws) | everything under `simulation/results/` | **Not shipped.** Regenerable by re-running `emp_run_resampling()` / `sim_run_synthetic_resampling()` / `sim_run_empirical_synthetic_agreement()` / `sim_run_all_analysis_visuals()`. |
+
+The manuscript and supplement carry the reported simulation displays;
+this repository ships the executable machinery and the documented
+runbook to regenerate them. Do **not** `git add -f` anything under
+`simulation/results/`, `output_sim_v30/`, `data/sim_*/`,
+`simulation/latent/`, or `simulation/manifests/` for the public
+release.
 
 ## Ignore (out of Git, regenerable or archival)
 
@@ -110,7 +119,7 @@ Once a file is tracked, the `.gitignore` rule no longer applies to it
 (git ignore-rules only affect untracked files). Document any force-add
 in the release notes so future readers know why an outlier ships.
 
-## Sim overview / summary CSVs (deferred until manuscript freeze)
+## Sim overview / summary CSVs — not shipped on GitHub
 
 The simulation sub-project produces several small, manuscript-candidate
 summary CSVs that live inside the ignored `simulation/results/` and
@@ -124,7 +133,10 @@ summary CSVs that live inside the ignored `simulation/results/` and
 - `simulation/results/figures/**/*.pdf` + `*_report.md`
 - `output_sim_v30/overview/*.csv`, `*.tex`
 
-**Decision (resolved)**: defer until `B` and `n_reps` are
-manuscript-frozen. When the freeze commit lands, force-add the specific
-small files the manuscript cites; do **not** relax the directory ignore
-rules (the multi-GB raw-draws CSVs share those directories).
+**Release decision (locked at v1.0.0):** these are not shipped on the
+public GitHub release. They are regenerable by re-running the
+simulation layer (see [`../simulation/README.md`](../simulation/README.md)
+and [`runbook.md`](runbook.md) Phases A–J). The manuscript and
+supplement carry the reported displays; the author-side mirror under
+`Rigor_Manuscript/05_artifacts/current/` is used only to build the
+manuscript PDF and is not part of the public release.

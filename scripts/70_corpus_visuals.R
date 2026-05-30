@@ -98,7 +98,12 @@ if (!exists(".robma_utils_loaded", inherits = TRUE)) {
 FIGURE_SIZES <- list(
   component_violin  = c(width =  6, height = NA),   # narrow; less dead space
   rigor_violin      = c(width =  6, height = NA),   # match component width
-  violin_stack      = c(width = 13, height = NA),   # horizontal 3-panel
+  violin_stack      = c(width = 9.5, height = NA),  # horizontal 3-panel; kept
+                                                    # narrow so the figure is
+                                                    # downscaled less at
+                                                    # \linewidth => larger
+                                                    # on-page text (matches the
+                                                    # Section-4 sim visuals)
   attenuation_horiz = c(width = 10, height = NA),
   attenuation_strip = c(width = NA, height = NA)    # square; size from n
 )
@@ -380,17 +385,25 @@ LOG10_BF_DISPLAY_CAP <- 2
 }
 
 # Pivot the registry into long form for the violin plots: one row per
-# (outcome, bf_type), bf_type in {"effect","heterogeneity","bias"}. A
+# (outcome, bf_type), bf_type in {"effect","heterogeneity","bias","rigor"}. A
 # display-capped plotting coordinate `logBF_disp` is attached (raw `logBF`
 # kept for diagnostics); +/-Inf and |x| > cap collapse onto +/-cap, NA stays
 # NA. Nothing is dropped upstream - the geoms drop NA.
+#
+# `rigor` (log10BF_rigor) is carried here so the Section-5 triptych stack can
+# place selected rigor in the SAME violin grammar (cap, evidence bands, guide
+# lines) as the marginal component panels. It is a JOINT model-family Bayes
+# factor, not a marginal component BF; the stack labels its panel accordingly.
+# The standalone per-component violin loop only requests effect/het/bias, so
+# adding rigor here writes no extra standalone file.
 .compute_stratum_bf_long <- function(dat, cap = LOG10_BF_DISPLAY_CAP) {
   dat %>%
     select(stratum_display = stratum_label,
            effect        = log10BF_effect,
            heterogeneity = log10BF_het,
-           bias          = log10BF_bias) %>%
-    pivot_longer(c(effect, heterogeneity, bias),
+           bias          = log10BF_bias,
+           rigor         = log10BF_rigor) %>%
+    pivot_longer(c(effect, heterogeneity, bias, rigor),
                  names_to = "bf_type", values_to = "logBF") %>%
     mutate(logBF_disp = .cap_log10_bf_for_violin(logBF, cap))
 }
@@ -473,6 +486,8 @@ LOG10_BF_DISPLAY_CAP <- 2
                                  show_y_axis = TRUE,
                                  stratum_order = NULL,
                                  cap = LOG10_BF_DISPLAY_CAP,
+                                 x_lab = expression(log[10](BF)),
+                                 base_size = 13,
                                  subtitle = paste0(
                                    "Violin = outcome distribution; point = ",
                                    "median; thick bar = IQR; whiskers = 10–90%"
@@ -492,6 +507,7 @@ LOG10_BF_DISPLAY_CAP <- 2
     median_size_outer = 3.0,
     median_size_inner = 2.0,
     y_text_size       = 11,
+    axis_text_size    = 10,
     title_size        = 12,
     plot_margin       = margin(12, 12, 6, 12)
   )
@@ -613,15 +629,15 @@ LOG10_BF_DISPLAY_CAP <- 2
                        breaks = ax$breaks, labels = ax$labels) +
     scale_y_discrete(drop = FALSE) +
     labs(title = title, subtitle = subtitle,
-         x = expression(log[10](BF)), y = NULL) +
-    theme_minimal(base_size = 13) +
+         x = x_lab, y = NULL) +
+    theme_minimal(base_size = base_size) +
     theme(
       panel.grid.minor   = element_blank(),
       panel.grid.major.y = element_blank(),
       panel.grid.major.x = element_blank(),
       axis.text.y  = element_text(face = "bold", size = st$y_text_size),
       axis.ticks.y = element_blank(),
-      axis.text.x  = element_text(size = 10),
+      axis.text.x  = element_text(size = st$axis_text_size),
       axis.ticks.x = element_line(color = "gray60"),
       legend.position = "none",
       plot.title    = element_text(face = "bold", size = st$title_size),
@@ -1742,41 +1758,57 @@ build_corpus_visuals <- function(output_dir = "output/overview",
       vdiag("component_violin", sp$comp, vf, vp$info)
   }
 
-  # --- Horizontal three-component violin stack -------------------------------
-  # Effect | Heterogeneity | Modeled bias laid out LEFT-TO-RIGHT so the same
-  # stratum row lines up across components and the stratum labels are written
-  # once (leftmost panel only). All three share ONE stratum order (the corpus
-  # slug order, `stratum_levels`) so rows align; each panel keeps its own
-  # component-specific display-capped x axis (cap tick ≤ -2 / ≥ 2).
-  vmsg("\nCreating horizontal three-component violin stack...")
+  # --- Section-5 evidence triptych (rigor | effect | modeled bias) -----------
+  # Selected rigor | Effect evidence | Modeled bias laid out LEFT-TO-RIGHT so
+  # the same stratum row lines up across panels and the stratum labels are
+  # written once (leftmost panel only). All three share ONE stratum order (the
+  # corpus slug order, `stratum_levels`) so rows align; each panel keeps its own
+  # display-capped x axis (cap tick ≤ -2 / ≥ 2).
+  #
+  # Panel A is selected rigor (log10BF_rigor), the JOINT model-family Bayes
+  # factor for the better-supported clean (no-explicit-bias) effect-or-no-effect
+  # branch -- NOT a marginal component BF. It uses the same violin grammar but a
+  # rigor-specific axis label (log10 BF^R). Heterogeneity is deliberately not a
+  # panel here; it remains in Table 1 / the standalone component violins and the
+  # supplement. The standalone corpus_component_violin_heterogeneity.pdf and the
+  # per-stratum component stacks are unchanged.
+  vmsg("\nCreating Section-5 evidence triptych (rigor | effect | bias)...")
 
+  # Typography bumped (2026-05 polish) to match the Section-4 simulation
+  # visuals (.cv_theme base_size = 14, title = base+1, axis text ~10). The
+  # figure is also saved narrower (FIGURE_SIZES$violin_stack width = 9.5) so it
+  # is downscaled less when embedded at \linewidth; together these raise the
+  # apparent on-page text size to the Section-4 standard.
   compact_style <- list(
-    point_size        = 1.5,
+    point_size        = 1.6,
     point_alpha       = 0.85,
     violin_alpha      = 0.42,
-    iqr_linewidth     = 1.2,
+    iqr_linewidth     = 1.8,
     iqr_alpha         = 0.55,
-    whisker_linewidth = 0.5,
+    whisker_linewidth = 0.6,
     whisker_alpha     = 0.7,
-    median_size_outer = 2.2,
-    median_size_inner = 1.3,
-    y_text_size       = 10,
-    title_size        = 12,
-    plot_margin       = margin(6, 6, 4, 6)
+    median_size_outer = 2.8,
+    median_size_inner = 1.7,
+    y_text_size       = 13,
+    axis_text_size    = 11,
+    title_size        = 15,
+    plot_margin       = margin(8, 8, 6, 8)
   )
 
-  p_panel_eff <- .stratum_violin_plot(
-    violin_long, violin_summary, "effect",
-    title = "A. Effect evidence", outfile = NULL, save = FALSE,
+  p_panel_rigor <- .stratum_violin_plot(
+    violin_long, violin_summary, "rigor",
+    title = "A. Selected rigor", outfile = NULL, save = FALSE,
     stratum_colors = stratum_colors, stratum_order = stratum_levels,
     show_x_axis = TRUE, show_x_title = TRUE, show_y_axis = TRUE,
+    x_lab = expression(log[10](BF^R)), base_size = 14,
     subtitle = NULL, style = compact_style, verbose = verbose
   )
-  p_panel_het <- .stratum_violin_plot(
-    violin_long, violin_summary, "heterogeneity",
-    title = "B. Heterogeneity evidence", outfile = NULL, save = FALSE,
+  p_panel_eff <- .stratum_violin_plot(
+    violin_long, violin_summary, "effect",
+    title = "B. Effect evidence", outfile = NULL, save = FALSE,
     stratum_colors = stratum_colors, stratum_order = stratum_levels,
     show_x_axis = TRUE, show_x_title = TRUE, show_y_axis = FALSE,
+    base_size = 14,
     subtitle = NULL, style = compact_style, verbose = verbose
   )
   p_panel_bias <- .stratum_violin_plot(
@@ -1784,29 +1816,31 @@ build_corpus_visuals <- function(output_dir = "output/overview",
     title = "C. Modeled bias evidence", outfile = NULL, save = FALSE,
     stratum_colors = stratum_colors, stratum_order = stratum_levels,
     show_x_axis = TRUE, show_x_title = TRUE, show_y_axis = FALSE,
+    base_size = 14,
     subtitle = NULL, style = compact_style, verbose = verbose
   )
 
   # Leftmost panel a touch wider so its stratum labels do not steal plotting
   # width from its violins.
-  violin_stack <- (p_panel_eff$plot | p_panel_het$plot |
+  violin_stack <- (p_panel_rigor$plot | p_panel_eff$plot |
                    p_panel_bias$plot) +
     plot_layout(widths = c(1.30, 1, 1)) +
     plot_annotation(
-      caption = paste0("Panels use component-specific raw log10(BF) values ",
-                        "display-capped at +/-2; values beyond the cap, ",
-                        "incl. +/-Inf, are plotted at the cap."),
-      theme = theme(plot.caption = element_text(hjust = 0.5, size = 9,
+      # Keep only the display-cap convention here (the rigor-vs-component
+      # explanation lives in the LaTeX caption); avoids a cluttered footer.
+      caption = paste0("Raw log10(BF) axes, display-capped at +/-2; values ",
+                        "beyond the cap (incl. +/-Inf) are plotted at the cap."),
+      theme = theme(plot.caption = element_text(hjust = 0.5, size = 10,
                                                 color = "gray40")))
 
   stack_pdf <- file.path(output_dir, "corpus_component_violin_stack.pdf")
-  stack_h   <- auto_figure_dim(length(stratum_levels), 0.5, 2.2, 4.5)
+  stack_h   <- auto_figure_dim(length(stratum_levels), 0.55, 2.8, 5)
   save_corpus_plot(violin_stack, stack_pdf, "violin_stack",
                    height = stack_h, verbose = verbose)
 
-  for (sp in list(list("effect",        p_panel_eff),
-                  list("heterogeneity", p_panel_het),
-                  list("bias",          p_panel_bias))) {
+  for (sp in list(list("rigor",  p_panel_rigor),
+                  list("effect", p_panel_eff),
+                  list("bias",   p_panel_bias))) {
     diag_list[[length(diag_list) + 1L]] <-
       vdiag("component_violin_stack", sp[[1]], stack_pdf, sp[[2]]$info)
   }

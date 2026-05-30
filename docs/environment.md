@@ -14,7 +14,7 @@ development (see below).
 | R | **4.6.0 (2026-04-24 ucrt)**, `x86_64-w64-mingw32` | Manually upgraded from 4.5.1. Meets RoBMA 4.0's R ≥ 4.2. |
 | JAGS | 4.3.1 (`C:\Program Files\JAGS\JAGS-4.3.1`) | Current **stable** release (not beta). Meets RoBMA 4.0's JAGS ≥ 4.3.1. Unaffected by the R upgrade; `rjags::jags.version()` returns `4.3.1` under R 4.6. |
 | Rtools | **Rtools46 NOT installed** — only `rtools43` / `rtools45` present (`RTOOLS45_HOME` set; `make` resolves to `C:\rtools45\usr\bin\make.exe`). | Rtools45 is **mismatched** to R 4.6 for *source* builds. **Non-blocking**: all pipeline packages were installed as CRAN **binaries** under R 4.6 and load correctly (RoBMA's compiled code links fine). Install **Rtools46** only if source compilation under R 4.6 is later required. |
-| User library | `C:/Users/Matt/AppData/Local/R/win-library/4.6` | Fresh R-4.6 user library, created during this pass; now `.libPaths()[1]`. The old `…/win-library/4.5` library is not on R 4.6's path. |
+| User library | `C:/Users/<you>/AppData/Local/R/win-library/4.6` (the per-user `.libPaths()[1]` location on Windows) | Fresh R-4.6 user library, created during this pass; now `.libPaths()[1]`. The old `…/win-library/4.5` library is not on R 4.6's path. |
 
 ## renv status — intentionally inactive
 

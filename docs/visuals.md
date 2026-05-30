@@ -46,16 +46,24 @@ supplement/QC role.
 - The cap tick is labelled `≤ -2` (left) and/or `≥ 2` (right) when capped
   values exist, never `±∞`, since finite values beyond the cap are collapsed
   there too. Other ticks are ordinary numbers.
-- `corpus_component_violin_stack.pdf` is a **three-component horizontal
-  panel** figure (Effect | Heterogeneity | Modeled bias, left-to-right). One
+- `corpus_component_violin_stack.pdf` is the **Section-5 evidence triptych**:
+  a **three-panel horizontal** figure (Selected rigor | Effect | Modeled bias,
+  left-to-right). **Panel A is selected rigor** (`log10BF_rigor`), the joint
+  model-family Bayes factor for the better-supported clean
+  (no-explicit-bias) branch — a different estimand from the marginal component
+  BFs, so its axis is labelled `log₁₀(BF^R)`; Panels B and C are the marginal
+  effect and modeled-bias component BFs (`log₁₀(BF)`). Heterogeneity is **not**
+  a panel here (it remains in the standalone
+  `corpus_component_violin_heterogeneity.pdf` and the per-stratum stacks). One
   shared stratum order (the corpus slug order) is used so rows line up across
   panels, and the stratum labels are written once (leftmost panel only). Each
-  panel keeps its own **component-specific** display-capped `log₁₀(BF)`
-  x-axis (free x per panel), so a narrow-spread component is not stretched to
-  a wide shared axis; values beyond the cap, including `±Inf`, are plotted at
-  the cap and the footer states the convention. The stratum-level counterpart
-  (`<scope>_component_violin_stack.pdf`, written by `50`) uses the same
-  grammar for a single stratum/source scope (one distribution per panel).
+  panel keeps its own display-capped x-axis (free x per panel), so a
+  narrow-spread quantity is not stretched to a wide shared axis; values beyond
+  the cap, including `±Inf`, are plotted at the cap and the footer states the
+  convention. The stratum-level counterpart
+  (`<scope>_component_violin_stack.pdf`, written by `50`) is unchanged and
+  keeps the Effect | Heterogeneity | Modeled bias grammar for a single
+  stratum/source scope (one distribution per panel).
 - The **evidence-axis transform** is retired (frozen under `archive/`
   for provenance only); it is never used for violin geometry or any
   default 50/70 output.

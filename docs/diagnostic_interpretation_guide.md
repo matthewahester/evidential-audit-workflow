@@ -83,7 +83,7 @@ For axis conventions see `docs/visuals.md`; for the file contract see
 - **Facing**: Q3 primary; precision improves with the per-cell library size in the input CSV.
 
 ### Empirical bootstrap vs empirical-weighted-synthetic overlay — `empirical_bootstrap_vs_empirical_weighted_synthetic_core_metrics.pdf`
-- **Purpose**: forest/range plot per (stratum, core metric) contrasting the empirical bootstrap q05-q95 with the empirical-weighted synthetic q05-q95 at each stratum's observed `n_outcomes`. Core metrics = `median_log10BF_rigor`, `median_rigor_margin`, `median_log10BF_bias`, `median_attenuation_abs`. Directional/thresholded `p_*` rate metrics are deliberately excluded.
+- **Purpose**: forest/range plot per (stratum, core metric) contrasting the empirical bootstrap q05-q95 with the empirical-weighted synthetic q05-q95 at each stratum's observed `n_outcomes`. Manuscript-facing core metrics = `median_log10BF_rigor`, `median_log10BF_bias`, `median_attenuation_abs`. `median_rigor_margin` remains an available diagnostic/support field in the source CSVs but is not part of the manuscript-facing core metric set. Directional/thresholded `p_*` rate metrics are deliberately excluded.
 - **Input**: `empirical_resampling/empirical_resampling_observed_size_intervals.csv` + `empirical_weighted_synthetic/empirical_weighted_synthetic_size_curve_summary.csv`.
 - **Good**: empirical bootstrap (blue) overlaps the empirical-weighted synthetic band (purple); systematic discrepancies have a plausible DGM explanation.
 - **Concerning**: many strata where empirical bootstrap sits well outside the empirical-weighted synthetic band (workflow not reproducing observed audit-component values).

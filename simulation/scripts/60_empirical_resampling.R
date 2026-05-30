@@ -2,7 +2,7 @@
 #
 # Define-only on source. One workflow call:
 #
-#   emp_run_resampling(B = 5000, n_grid = c(5:30, 35, 40, 50), workers=5)
+#   emp_run_resampling(B = 15000, n_grid = c(5:30, 35, 40, 50), workers=5)
 #                      
 #
 # This reads only the empirical v4 outcome registry under output/,

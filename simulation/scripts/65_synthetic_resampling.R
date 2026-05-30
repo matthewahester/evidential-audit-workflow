@@ -93,10 +93,16 @@
 #   sim_load_synthetic_registry(). If that registry is stale, every
 #   downstream Q1/Q3 row will carry a stale n_pool / synthetic pool
 #   index even though the underlying sidecars on disk may be newer.
-#   In particular, if cell_diagnostics_rigor.csv (written by 55, which
-#   reads sidecars directly) reports larger n_fit than the registry
-#   pool can supply, the registry needs to be rebuilt BEFORE running
-#   65:
+#
+#   As of 2026-05, sim_run_synthetic_resampling() rebuilds that
+#   registry automatically before any subroutine runs (default
+#   refresh_registry = TRUE; one call to sim_refresh_synthetic_registry()
+#   which sentinel-sources scripts/60_estimand_tables.R if needed).
+#   Pass refresh_registry = FALSE only when the registry is known fresh
+#   from an earlier call in the same session, or when calling the
+#   lower-level sim_run_cell_size_curve() / sim_run_empirical_weighted_*
+#   runners directly. In those lower-level paths, rebuild the registry
+#   manually beforehand:
 #
 #     source("scripts/60_estimand_tables.R")
 #     build_estimand_tables(
@@ -178,9 +184,11 @@
 #                                        outcome_registry.csv between
 #                                        55 (sidecar diagnostics) and
 #                                        this script's resampling runs.
-#                                        NOT called automatically; the
-#                                        sidecar -> registry handoff is
-#                                        documented in the README.
+#                                        As of 2026-05, called
+#                                        automatically by
+#                                        sim_run_synthetic_resampling()
+#                                        (default refresh_registry=TRUE);
+#                                        also callable directly.
 #   sim_run_synthetic_resampling()           - top-level workflow runner
 #                                              (mirrors emp_run_resampling());
 #                                              runs Q1 known-cell size curve
@@ -1080,17 +1088,22 @@ sim_validate_composition_inputs <- function(synthetic_registry,
 #' Thin convenience wrapper around the main reporting pipeline's
 #' `build_estimand_tables()`. Provided here because 65 consumes the
 #' registry it writes (`output_sim_v30/overview/outcome_registry.csv`),
-#' so the canonical handoff after a fitted-library change is:
+#' so after a fitted-library change the registry must be rebuilt
+#' before the synthetic resampling layer reads from it.
+#'
+#' As of 2026-05 this is called automatically from
+#' `sim_run_synthetic_resampling()` (default `refresh_registry = TRUE`)
+#' so the canonical operator flow collapses to:
 #'
 #'   sim_build_cell_diagnostics()          # 55, reads sidecars directly
-#'   sim_refresh_synthetic_registry()      # rebuild overview registry
-#'   sim_run_synthetic_resampling(...)     # 65, consumes the registry
+#'   sim_run_synthetic_resampling(...)     # 65, auto-refreshes then runs
 #'
-#' This function is intentionally NOT called automatically from
-#' `sim_build_cell_diagnostics()` (which is a sidecar-only diagnostic
-#' layer) or from `sim_run_synthetic_resampling()` (which would hide
-#' the handoff). It is a documented, explicit step. Sentinel-sources
-#' `scripts/60_estimand_tables.R` define-only if needed.
+#' Call this directly only when you want the registry rebuild without
+#' the resampling subroutines (e.g. to feed another consumer), or pass
+#' `refresh_registry = FALSE` to `sim_run_synthetic_resampling()` to
+#' skip it (when the registry is known fresh from an earlier call in
+#' the same session). Sentinel-sources `scripts/60_estimand_tables.R`
+#' define-only if needed.
 #'
 #' @param root        Simulation output root (default "output_sim_v30").
 #' @param output_dir  Where the rebuilt overview tables live (default
@@ -2834,6 +2847,11 @@ sim_run_composition_size_curve <- function(...) {
 #'   sim_run_synthetic_resampling(B = 100, n_grid = c(5:30, 35, 40, 50))
 #'
 #' Subroutines (any combination toggleable via `include_*`):
+#'   0. `sim_refresh_synthetic_registry()` -- rebuild the simulation
+#'      overview registry (`output_sim_v30/overview/outcome_registry.csv`)
+#'      from current sidecars before any subroutine runs. Default ON
+#'      (`refresh_registry = TRUE`). Skip with `refresh_registry = FALSE`
+#'      when the registry is known fresh.
 #'   A. `sim_run_cell_size_curve()` -- Q1 known-cell n_outcomes
 #'      stability curve (synthetic-only).
 #'   B. `sim_run_empirical_weighted_synthetic()` -- Q3 empirical-
@@ -2843,6 +2861,12 @@ sim_run_composition_size_curve <- function(...) {
 #'
 #' Lower-level runners are unchanged and remain useful targeted /
 #' debug entry points; this orchestrator just sequences them.
+#'
+#' @param refresh_registry If TRUE (default), call
+#'   `sim_refresh_synthetic_registry()` once before the include_*
+#'   subroutines so the on-disk overview registry is rebuilt from
+#'   the current sidecars. Set FALSE to skip (e.g. when the registry
+#'   was just rebuilt by another call in the same session).
 #'
 #' @return invisible list(B, n_grid, pool_key, smoothing,
 #'   cell_size_curve, empirical_weighted_synthetic,
@@ -2866,6 +2890,7 @@ sim_run_synthetic_resampling <- function(
     workers                        = NULL,
     write                          = TRUE,
     verbose                        = TRUE,
+    refresh_registry               = TRUE,
     include_cell_size_curve        = TRUE,
     include_observed_composition   = TRUE,
     include_composition_size_curve = TRUE) {
@@ -2889,13 +2914,32 @@ sim_run_synthetic_resampling <- function(
     message(sprintf(paste0(
       "[sc][resampling] B=%d, n_grid=%d (%d..%d), pool_key=%s, ",
       "smoothing=%s, kappa=%s, support=%s; subruns: cell=%s, ",
-      "observed_composition=%s, composition_curve=%s"),
+      "observed_composition=%s, composition_curve=%s; ",
+      "refresh_registry=%s"),
       B, length(n_grid), min(n_grid), max(n_grid), pool_key, smoothing,
       if (smoothing == "eb_corpus") sprintf("%g", kappa) else "n/a",
       support,
       isTRUE(include_cell_size_curve),
       isTRUE(include_observed_composition),
-      isTRUE(include_composition_size_curve)))
+      isTRUE(include_composition_size_curve),
+      isTRUE(refresh_registry)))
+
+  # Rebuild the simulation overview registry from current sidecars
+  # before any subroutine consumes it. This is the canonical sidecar ->
+  # registry handoff that used to be a separate manual Phase B step
+  # (build_estimand_tables(root = sim_output_root, ...)); folding it in
+  # here makes the default workflow self-contained. Opt out with
+  # refresh_registry = FALSE when the registry is known fresh.
+  if (isTRUE(refresh_registry)) {
+    if (isTRUE(verbose))
+      message(sprintf(
+        "[sc][resampling] refreshing overview registry: %s",
+        file.path(sim_output_root, "overview", "outcome_registry.csv")))
+    sim_refresh_synthetic_registry(
+      root       = sim_output_root,
+      output_dir = file.path(sim_output_root, "overview"),
+      write_tex  = FALSE)
+  }
 
   cell_res <- NULL
   obs_res  <- NULL
