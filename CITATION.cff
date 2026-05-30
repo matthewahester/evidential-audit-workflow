@@ -1,11 +1,10 @@
 # =============================================================================
 # CITATION.cff
 #
-# Release-candidate metadata. Fields that require values minted at release
-# time (Zenodo DOI) or at manuscript posting (arXiv URL, journal DOI, year,
-# journal name) are intentionally omitted rather than carried as
-# placeholders. Add them in follow-up commits at the corresponding
-# release/posting milestones.
+# v1.0.0 release metadata with Zenodo archive DOI. Manuscript-side fields
+# (arXiv URL, journal DOI, year, journal name) are intentionally omitted
+# rather than carried as placeholders. Add them in follow-up commits at
+# the corresponding posting milestones.
 # =============================================================================
 cff-version: 1.2.0
 message: "If you use this pipeline, please cite both the repository and the associated manuscript."
@@ -39,6 +38,12 @@ keywords:
   - research synthesis methods
   - reproducible workflow
   - evidential audit
+version: "1.0.0"
+date-released: "2026-05-30"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.20467258"
+    description: "Archived release DOI (Zenodo)"
 
 preferred-citation:
   type: article

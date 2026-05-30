@@ -227,11 +227,13 @@ If you use this pipeline, please cite both the repository and the
 associated manuscript. Structured metadata is in
 [`CITATION.cff`](CITATION.cff).
 
-- **Repository:** Hester, M. *Bias-Robust Bayesian Meta-Analysis
-  Pipeline (RoBMA-PSMA Evidential Audit Workflow)*.
+- **Repository (archived release):** Hester, M. (2026). *Evidential
+  Audit Workflow (RoBMA-PSMA, RoBMA 4.0)*, v1.0.0.
+  DOI: [10.5281/zenodo.20467258](https://doi.org/10.5281/zenodo.20467258).
+  An archived snapshot of v1.0.0 is available on Zenodo at
+  <https://doi.org/10.5281/zenodo.20467258>. The live development
+  repository is at
   <https://github.com/matthewahester/evidential-audit-workflow>.
-  An archived release DOI will be added to this section after the
-  v1.0.0 tag is minted on Zenodo.
 - **Manuscript:** Hester, M. *Quantifying Evidential Rigor in
   Meta-Analytic Corpora: A Simulation-Characterized, Bias-Robust
   Bayesian Workflow with a Nutrition Case Study.* Manuscript DOI and

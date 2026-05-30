@@ -16,6 +16,17 @@ fixed MCMC seed).
 
 ---
 
+> **Status (2026-05-30):** Zenodo release DOI **reserved**
+> as `10.5281/zenodo.20467258`
+> (<https://doi.org/10.5281/zenodo.20467258>). It is inserted into
+> `CITATION.cff`, the root `README.md`, the manuscript
+> Data Availability statement, and `06_refs/master.bib`. The final
+> archive must still be uploaded to the Zenodo draft (replacing the
+> pre-DOI file) and the record must be published by the user; the
+> v1.0.0 tag has not been pushed yet.
+
+---
+
 ## A. Before v1.0.0 tag
 
 These items must be done in the same commit that the v1.0.0 tag points
